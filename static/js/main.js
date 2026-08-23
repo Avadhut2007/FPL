@@ -114,6 +114,33 @@ async function loadTopPlayers(position) {
   }
 }
 
+async function loadInjuries() {
+  const listEl = el("injury-list");
+  try {
+    const data = await fetchJSON("/api/injuries");
+    if (data.injuries.length === 0) {
+      listEl.innerHTML = `<p class="table-empty">No injury news right now — full squad fitness across the league.</p>`;
+      return;
+    }
+    listEl.innerHTML = data.injuries
+      .map((p) => {
+        const doubtfulClass = p.status === "d" ? "doubtful" : "";
+        const chance = p.chance_of_playing_next_round;
+        const chanceText = chance === null || chance === undefined ? "" : ` · ${chance}% chance next GW`;
+        return `
+      <div class="injury-row ${doubtfulClass}">
+        <span class="injury-name">${p.name}</span>
+        <span class="injury-meta">${p.team} · ${p.position}${chanceText}</span>
+        <span class="injury-status">${p.status_label}</span>
+        <span class="injury-news">${p.news}</span>
+      </div>`;
+      })
+      .join("");
+  } catch (e) {
+    listEl.innerHTML = `<p class="table-empty">Error loading injury news: ${e.message}</p>`;
+  }
+}
+
 async function checkTransfers() {
   const teamId = el("team-id-input").value;
   const freeTransfers = el("free-transfers-input").value || 1;
@@ -163,3 +190,7 @@ document.querySelectorAll(".pos-tab").forEach((tab) => {
 
 // Initial load
 loadTopPlayers("ALL");
+loadInjuries();
+
+// Auto-update injury news every 5 minutes without needing a page reload
+setInterval(loadInjuries, 5 * 60 * 1000);

@@ -86,3 +86,42 @@ def filter_available_players(df: pd.DataFrame) -> pd.DataFrame:
     df = df[df["status"].isin(["a", "d"])]           # drop injured(i) and suspended(s)
     df = df[df["chance_of_playing_next_round"] >= 50]  # drop very unlikely starters
     return df.reset_index(drop=True)
+
+
+STATUS_LABELS = {
+    "i": "Injured",
+    "s": "Suspended",
+    "d": "Doubtful",
+    "u": "Unavailable",
+    "n": "Not available",
+}
+
+
+def build_injury_list(bootstrap: dict) -> list:
+    """
+    Injury/availability news straight from the FPL API's own player 'news'
+    field — no external news source needed. Only includes players who are
+    NOT fully fit/available (status != 'a') or have a news blurb set.
+    Sorted with most recently updated news first.
+    """
+    team_lookup = build_team_lookup(bootstrap)
+    items = []
+    for p in bootstrap["elements"]:
+        status = p["status"]
+        news = (p.get("news") or "").strip()
+        if status == "a" and not news:
+            continue  # fully fit, nothing to report
+
+        items.append({
+            "name": p["web_name"],
+            "team": team_lookup.get(p["team"], "UNK"),
+            "position": POSITION_MAP.get(p["element_type"], "UNK"),
+            "status": status,
+            "status_label": STATUS_LABELS.get(status, "Doubtful"),
+            "news": news or "No update provided yet.",
+            "chance_of_playing_next_round": p["chance_of_playing_next_round"],
+            "news_added": p.get("news_added"),
+        })
+
+    items.sort(key=lambda x: x["news_added"] or "", reverse=True)
+    return items

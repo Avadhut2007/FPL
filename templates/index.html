@@ -30,6 +30,51 @@
 
 <main class="dashboard">
 
+  <section class="transfers-panel">
+    <div class="panel-header">
+      <h2>Transfer Suggestions</h2>
+    </div>
+    <p class="transfers-hint">Enter your FPL Team ID (found in your team's URL on the official site) to get upgrade suggestions.</p>
+    <div class="controls">
+      <input type="number" id="team-id-input" placeholder="e.g. 1234567">
+      <input type="number" id="free-transfers-input" placeholder="Free transfers" value="1" min="1" max="5" style="max-width:140px">
+      <button id="transfers-btn" class="btn btn-gold">Check Transfers</button>
+    </div>
+    <div id="transfers-list" class="transfers-list"></div>
+  </section>
+
+  <section class="injury-panel">
+    <div class="panel-header">
+      <h2>Injury Watch</h2>
+    </div>
+    <div id="injury-list" class="injury-list">
+      <p class="table-empty">Loading injury news…</p>
+    </div>
+  </section>
+
+  <section class="table-panel">
+    <div class="panel-header">
+      <h2>Top Rated Players</h2>
+      <div class="pos-tabs" id="pos-tabs">
+        <button class="pos-tab active" data-pos="ALL">ALL</button>
+        <button class="pos-tab" data-pos="GKP">GKP</button>
+        <button class="pos-tab" data-pos="DEF">DEF</button>
+        <button class="pos-tab" data-pos="MID">MID</button>
+        <button class="pos-tab" data-pos="FWD">FWD</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table class="player-table">
+        <thead>
+          <tr><th>Player</th><th>Team</th><th>Pos</th><th>Price</th><th>Form</th><th>Pred. Pts</th><th>Value</th></tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="7" class="table-empty">Loading top players…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section class="pitch-panel" id="pitch-panel">
     <div class="panel-header">
       <h2>Starting XI</h2>
@@ -71,40 +116,6 @@
       <span class="stat-value" id="stat-vice">—</span>
     </div>
   </aside>
-
-  <section class="table-panel">
-    <div class="panel-header">
-      <h2>Top Rated Players</h2>
-      <div class="pos-tabs" id="pos-tabs">
-        <button class="pos-tab active" data-pos="ALL">ALL</button>
-        <button class="pos-tab" data-pos="GKP">GKP</button>
-        <button class="pos-tab" data-pos="DEF">DEF</button>
-        <button class="pos-tab" data-pos="MID">MID</button>
-        <button class="pos-tab" data-pos="FWD">FWD</button>
-      </div>
-    </div>
-    <table class="player-table">
-      <thead>
-        <tr><th>Player</th><th>Team</th><th>Pos</th><th>Price</th><th>Form</th><th>Pred. Pts</th><th>Value</th></tr>
-      </thead>
-      <tbody id="table-body">
-        <tr><td colspan="7" class="table-empty">Loading top players…</td></tr>
-      </tbody>
-    </table>
-  </section>
-
-  <section class="transfers-panel">
-    <div class="panel-header">
-      <h2>Transfer Suggestions</h2>
-    </div>
-    <p class="transfers-hint">Enter your FPL Team ID (found in your team's URL on the official site) to get upgrade suggestions.</p>
-    <div class="controls">
-      <input type="number" id="team-id-input" placeholder="e.g. 1234567">
-      <input type="number" id="free-transfers-input" placeholder="Free transfers" value="1" min="1" max="5" style="max-width:140px">
-      <button id="transfers-btn" class="btn btn-gold">Check Transfers</button>
-    </div>
-    <div id="transfers-list" class="transfers-list"></div>
-  </section>
 
 </main>
 

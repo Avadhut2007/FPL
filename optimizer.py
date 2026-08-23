@@ -104,24 +104,59 @@ def suggest_transfers(current_squad_ids: list, df: pd.DataFrame, free_transfers:
     Simple transfer suggestion engine: for each position, find the biggest
     predicted_points upgrade affordable within budget_bank + selling price
     of a current player, limited to `free_transfers` swaps (to avoid points hits).
-    Returns a list of dicts: {out, in, gain, cost_delta}.
+
+    Two squad-legality constraints are enforced on every suggestion:
+      - position-to-position only (a GKP can only be replaced by a GKP, etc.)
+      - max 3 players per club in the resulting squad, tracked cumulatively
+        so that several suggestions in the same call can never together push
+        a club over the limit (e.g. suggestion #1 and #2 both bringing in a
+        player from the same already-stacked club).
+
+    Returns a list of dicts: {out, in, gain, price_delta}.
     """
     current = df[df["id"].isin(current_squad_ids)].copy()
     suggestions = []
 
+    # Running squad state — updated as each suggestion is committed, so
+    # later suggestions in this same call see the post-swap squad, not the
+    # original one.
+    squad_ids = set(current_squad_ids)
+    team_counts = current["team"].value_counts().to_dict()
+
     for _, out_player in current.sort_values("predicted_points").iterrows():
+        if out_player["id"] not in squad_ids:
+            continue  # already transferred out by an earlier suggestion this call
+
         pos = out_player["position"]
+        out_team = out_player["team"]
         max_price = out_player["price"] + budget_bank
 
+        team_counts_after_out = team_counts.copy()
+        team_counts_after_out[out_team] = team_counts_after_out.get(out_team, 0) - 1
+
         candidates = df[
-            (df["position"] == pos)
-            & (~df["id"].isin(current_squad_ids))
+            (df["position"] == pos)                          # <-- position-to-position, hard filter
+            & (~df["id"].isin(squad_ids))
             & (df["price"] <= max_price)
             & (df["predicted_points"] > out_player["predicted_points"])
-        ].sort_values("predicted_points", ascending=False)
+        ].copy()
+
+        # Max-3-per-club after this swap lands
+        candidates["team_count_after_in"] = candidates["team"].map(
+            lambda t: team_counts_after_out.get(t, 0) + 1
+        )
+        candidates = candidates[candidates["team_count_after_in"] <= config.MAX_PER_CLUB]
+        candidates = candidates.sort_values("predicted_points", ascending=False)
 
         if not candidates.empty:
             best_in = candidates.iloc[0]
+
+            # Safety net: never let a cross-position swap slip through silently.
+            assert best_in["position"] == pos, (
+                f"Position mismatch: tried to replace {out_player['web_name']} "
+                f"({pos}) with {best_in['web_name']} ({best_in['position']})"
+            )
+
             suggestions.append({
                 "out": out_player["web_name"],
                 "out_points": round(out_player["predicted_points"], 2),
@@ -130,6 +165,12 @@ def suggest_transfers(current_squad_ids: list, df: pd.DataFrame, free_transfers:
                 "gain": round(best_in["predicted_points"] - out_player["predicted_points"], 2),
                 "price_delta": round(best_in["price"] - out_player["price"], 1),
             })
+
+            # Commit the swap to the running state before evaluating the next out_player
+            squad_ids.discard(out_player["id"])
+            squad_ids.add(best_in["id"])
+            team_counts[out_team] = team_counts.get(out_team, 0) - 1
+            team_counts[best_in["team"]] = team_counts.get(best_in["team"], 0) + 1
 
         if len(suggestions) >= free_transfers:
             break

@@ -109,6 +109,11 @@ img, svg, table { max-width: 100%; }
   align-items: stretch;
   margin-top: 24px;
   width: 100%;
+  min-width: 0;
+}
+
+.controls > * {
+  min-width: 0; /* critical: stops flex children from blowing past the container width */
 }
 
 .budget-label {
@@ -134,6 +139,8 @@ input[type="number"] {
   padding: 10px 12px;
   border-radius: 6px;
   width: 100%;
+  min-width: 0;
+  flex: 1 1 140px;
 }
 input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
 
@@ -206,6 +213,7 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
 .pitch-panel,
 .transfers-panel,
 .news-panel,
+.generator-panel,
 .table-panel,
 .stat-card {
   background: var(--panel);
@@ -400,7 +408,21 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
 
 /* ---------------- Player news panel ---------------- */
 
-.news-list { display: flex; flex-direction: column; gap: 10px; }
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) var(--panel-2);
+}
+
+.news-list::-webkit-scrollbar { width: 6px; }
+.news-list::-webkit-scrollbar-track { background: var(--panel-2); border-radius: 4px; }
+.news-list::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 4px; }
 
 .news-row {
   display: flex;
@@ -543,11 +565,33 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
    Mobile-first base styles above (<640px assumed)
    ================================================ */
 
+/* Small phones: stack every control row so nothing can overflow sideways */
+@media (max-width: 479px) {
+  .generator-panel .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .generator-panel .budget-label { max-width: none; }
+
+  .transfers-panel .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .transfers-panel .controls input,
+  .transfers-panel .controls .btn {
+    width: 100%;
+    max-width: none !important;
+  }
+
+  .btn { flex: 1 1 100%; }
+  .news-list { max-height: 300px; }
+}
+
 /* Small tablets and up */
 @media (min-width: 640px) {
   .hero { padding: 56px 24px 40px; }
   .dashboard { padding: 28px 20px 56px; gap: 20px; }
-  .pitch-panel, .transfers-panel, .news-panel, .table-panel, .stat-card { padding: 20px; }
+  .pitch-panel, .transfers-panel, .news-panel, .generator-panel, .table-panel, .stat-card { padding: 20px; }
   .stats-panel { grid-template-columns: repeat(4, 1fr); }
   .player-chip { min-width: 88px; max-width: 130px; }
   .player-chip .name { font-size: 0.78rem; }
@@ -572,6 +616,7 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
   }
   .transfers-panel,
   .news-panel,
+  .generator-panel,
   .table-panel {
     grid-column: 1 / -1;
   }

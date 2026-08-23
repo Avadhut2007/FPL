@@ -25,11 +25,18 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
   line-height: 1.5;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* ---------------- Hero ---------------- */
@@ -368,6 +375,47 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
   transition: width 0.4s ease;
 }
 
+/* ---------------- Injury panel ---------------- */
+
+.injury-panel {
+  grid-column: 1 / -1;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.injury-list { display: flex; flex-direction: column; gap: 10px; }
+
+.injury-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red-out);
+  border-radius: 8px;
+  padding: 12px 16px;
+  flex-wrap: wrap;
+}
+
+.injury-row.doubtful { border-left-color: var(--gold); }
+
+.injury-name { font-weight: 600; }
+.injury-meta { color: var(--text-muted); font-size: 0.8rem; font-family: var(--font-mono); }
+.injury-status {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--red-out);
+  border: 1px solid var(--red-out);
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+.injury-row.doubtful .injury-status { color: var(--gold-soft); border-color: var(--gold-soft); }
+.injury-news { flex-basis: 100%; color: var(--text-muted); font-size: 0.85rem; }
+
 /* ---------------- Table panel ---------------- */
 
 .table-panel {
@@ -392,7 +440,12 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
 }
 .pos-tab.active { background: var(--gold); color: #1A1400; border-color: var(--gold); }
 
-.player-table { width: 100%; border-collapse: collapse; }
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.player-table { width: 100%; min-width: 560px; border-collapse: collapse; }
 
 .player-table th {
   text-align: left;

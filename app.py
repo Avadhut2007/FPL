@@ -123,5 +123,15 @@ def api_transfers():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/news")
+def api_news():
+    try:
+        bootstrap = fpl_api.get_bootstrap_data()
+        items = data_processor.build_player_news(bootstrap)
+        return jsonify({"ok": True, "news": items})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

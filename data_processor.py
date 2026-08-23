@@ -89,6 +89,7 @@ def filter_available_players(df: pd.DataFrame) -> pd.DataFrame:
 
 
 STATUS_LABELS = {
+    "a": "Available",
     "i": "Injured",
     "s": "Suspended",
     "d": "Doubtful",
@@ -97,11 +98,13 @@ STATUS_LABELS = {
 }
 
 
-def build_injury_list(bootstrap: dict) -> list:
+def build_player_news(bootstrap: dict) -> list:
     """
-    Injury/availability news straight from the FPL API's own player 'news'
-    field — no external news source needed. Only includes players who are
-    NOT fully fit/available (status != 'a') or have a news blurb set.
+    All player news straight from the FPL API's own per-player 'news' field —
+    covers injuries, suspensions, loan/transfer moves, personal leave, and any
+    other club-reported update, not just injuries. No external news source
+    needed. Only players with a non-empty news blurb OR a non-'a' status are
+    included (a fully fit player with nothing reported is skipped).
     Sorted with most recently updated news first.
     """
     team_lookup = build_team_lookup(bootstrap)
@@ -110,15 +113,15 @@ def build_injury_list(bootstrap: dict) -> list:
         status = p["status"]
         news = (p.get("news") or "").strip()
         if status == "a" and not news:
-            continue  # fully fit, nothing to report
+            continue  # fully fit, nothing reported — not news
 
         items.append({
             "name": p["web_name"],
             "team": team_lookup.get(p["team"], "UNK"),
             "position": POSITION_MAP.get(p["element_type"], "UNK"),
             "status": status,
-            "status_label": STATUS_LABELS.get(status, "Doubtful"),
-            "news": news or "No update provided yet.",
+            "status_label": STATUS_LABELS.get(status, "Update"),
+            "news": news or "No further details provided yet.",
             "chance_of_playing_next_round": p["chance_of_playing_next_round"],
             "news_added": p.get("news_added"),
         })

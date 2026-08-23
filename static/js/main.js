@@ -1,3 +1,4 @@
+
 // ============================================
 // FPL Squad Lab — frontend logic
 // ============================================
@@ -114,30 +115,30 @@ async function loadTopPlayers(position) {
   }
 }
 
-async function loadInjuries() {
-  const listEl = el("injury-list");
+async function loadPlayerNews() {
+  const listEl = el("news-list");
   try {
-    const data = await fetchJSON("/api/injuries");
-    if (data.injuries.length === 0) {
-      listEl.innerHTML = `<p class="table-empty">No injury news right now — full squad fitness across the league.</p>`;
+    const data = await fetchJSON("/api/news");
+    if (data.news.length === 0) {
+      listEl.innerHTML = `<p class="table-empty">No player news right now.</p>`;
       return;
     }
-    listEl.innerHTML = data.injuries
+    listEl.innerHTML = data.news
       .map((p) => {
-        const doubtfulClass = p.status === "d" ? "doubtful" : "";
+        const rowClass = p.status === "d" ? "doubtful" : (p.status !== "a" ? "unavailable" : "");
         const chance = p.chance_of_playing_next_round;
         const chanceText = chance === null || chance === undefined ? "" : ` · ${chance}% chance next GW`;
         return `
-      <div class="injury-row ${doubtfulClass}">
-        <span class="injury-name">${p.name}</span>
-        <span class="injury-meta">${p.team} · ${p.position}${chanceText}</span>
-        <span class="injury-status">${p.status_label}</span>
-        <span class="injury-news">${p.news}</span>
+      <div class="news-row ${rowClass}">
+        <span class="news-name">${p.name}</span>
+        <span class="news-meta">${p.team} · ${p.position}${chanceText}</span>
+        <span class="news-status">${p.status_label}</span>
+        <span class="news-item-text">${p.news}</span>
       </div>`;
       })
       .join("");
   } catch (e) {
-    listEl.innerHTML = `<p class="table-empty">Error loading injury news: ${e.message}</p>`;
+    listEl.innerHTML = `<p class="table-empty">Error loading player news: ${e.message}</p>`;
   }
 }
 
@@ -190,7 +191,7 @@ document.querySelectorAll(".pos-tab").forEach((tab) => {
 
 // Initial load
 loadTopPlayers("ALL");
-loadInjuries();
+loadPlayerNews();
 
-// Auto-update injury news every 5 minutes without needing a page reload
-setInterval(loadInjuries, 5 * 60 * 1000);
+// Auto-update player news every 5 minutes without needing a page reload
+setInterval(loadPlayerNews, 5 * 60 * 1000);

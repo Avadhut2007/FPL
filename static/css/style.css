@@ -1,5 +1,6 @@
 /* ============================================
    FPL Squad Lab — dark stadium-at-night theme
+   Mobile-first, then scaled up for tablet/desktop
    ============================================ */
 
 :root {
@@ -25,9 +26,10 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html {
+html, body {
   overflow-x: hidden;
   width: 100%;
+  max-width: 100vw;
 }
 
 body {
@@ -35,16 +37,16 @@ body {
   color: var(--text);
   font-family: var(--font-body);
   line-height: 1.5;
-  overflow-x: hidden;
-  width: 100%;
 }
+
+img, svg, table { max-width: 100%; }
 
 /* ---------------- Hero ---------------- */
 
 .hero {
   position: relative;
   overflow: hidden;
-  padding: 64px 24px 48px;
+  padding: 40px 16px 32px;
   text-align: center;
   border-bottom: 1px solid var(--border);
 }
@@ -61,7 +63,12 @@ body {
   mask-image: linear-gradient(to bottom, black, transparent 85%);
 }
 
-.hero-content { position: relative; max-width: 720px; margin: 0 auto; }
+.hero-content {
+  position: relative;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
 
 .eyebrow {
   font-family: var(--font-mono);
@@ -75,30 +82,33 @@ body {
 .wordmark {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  font-size: clamp(2rem, 8vw, 4.2rem);
   letter-spacing: 0.02em;
   text-transform: uppercase;
   line-height: 1;
+  word-break: break-word;
 }
 
 .wordmark .accent { color: var(--gold); }
 
 .tagline {
-  margin-top: 18px;
+  margin-top: 16px;
   color: var(--text-muted);
-  font-size: 1.02rem;
+  font-size: 0.95rem;
   max-width: 560px;
   margin-left: auto;
   margin-right: auto;
+  padding: 0 4px;
 }
 
 .controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   justify-content: center;
-  align-items: center;
-  margin-top: 28px;
+  align-items: stretch;
+  margin-top: 24px;
+  width: 100%;
 }
 
 .budget-label {
@@ -107,10 +117,12 @@ body {
   align-items: flex-start;
   gap: 4px;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  flex: 1 1 130px;
+  max-width: 160px;
 }
 
 input[type="number"] {
@@ -121,19 +133,21 @@ input[type="number"] {
   font-size: 0.95rem;
   padding: 10px 12px;
   border-radius: 6px;
-  width: 130px;
+  width: 100%;
 }
 input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
 
 .btn {
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 0.92rem;
-  padding: 11px 22px;
+  font-size: 0.88rem;
+  padding: 11px 18px;
   border-radius: 6px;
   border: none;
   cursor: pointer;
   transition: transform 0.12s ease, filter 0.12s ease;
+  white-space: nowrap;
+  flex: 1 1 auto;
 }
 .btn:hover { filter: brightness(1.1); }
 .btn:active { transform: scale(0.98); }
@@ -143,9 +157,9 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
 .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
 
 .gw-tag {
-  margin-top: 16px;
+  margin-top: 14px;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   min-height: 1em;
 }
@@ -155,22 +169,25 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
 .dashboard {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 24px 64px;
+  padding: 20px 14px 48px;
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 24px;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  width: 100%;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 16px;
 }
 
 .panel-header h2 {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -185,14 +202,21 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
   border: 1px solid var(--border);
 }
 
-/* ---------------- Pitch ---------------- */
-
-.pitch-panel {
+/* All full-width dashboard panels share this card look */
+.pitch-panel,
+.transfers-panel,
+.news-panel,
+.table-panel,
+.stat-card {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 20px;
+  padding: 16px;
+  width: 100%;
+  min-width: 0; /* critical: lets grid children shrink instead of overflowing */
 }
+
+/* ---------------- Pitch ---------------- */
 
 .pitch {
   position: relative;
@@ -204,8 +228,8 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
     );
   border: 2px solid var(--line);
   border-radius: 10px;
-  padding: 20px 12px;
-  min-height: 480px;
+  padding: 16px 8px;
+  min-height: 360px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -225,8 +249,8 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 90px;
-  height: 90px;
+  width: 70px;
+  height: 70px;
   border: 1px solid var(--line);
   border-radius: 50%;
   transform: translate(-50%, -50%);
@@ -239,7 +263,7 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
   justify-content: space-evenly;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .pitch-placeholder {
@@ -251,16 +275,17 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
   text-align: center;
   color: rgba(255,255,255,0.55);
   font-family: var(--font-mono);
-  font-size: 0.85rem;
-  padding: 0 40px;
+  font-size: 0.8rem;
+  padding: 0 24px;
 }
 
 .player-chip {
   background: rgba(10, 15, 13, 0.82);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 6px 10px;
-  min-width: 88px;
+  padding: 5px 8px;
+  min-width: 72px;
+  max-width: 110px;
   text-align: center;
   backdrop-filter: blur(2px);
   position: relative;
@@ -268,20 +293,22 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
 
 .player-chip .name {
   display: block;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100px;
 }
 
 .player-chip .meta {
   display: block;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   color: var(--gold-soft);
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .player-chip.captain { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
@@ -305,16 +332,16 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
 /* ---------------- Dugout / bench ---------------- */
 
 .dugout {
-  margin-top: 18px;
+  margin-top: 16px;
   background: var(--dugout);
   border-radius: 10px;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid var(--border);
 }
 
 .dugout-label {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted);
@@ -325,28 +352,23 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
 .dugout-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+  justify-content: center;
 }
 
 /* ---------------- Stats panel ---------------- */
 
 .stats-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.stat-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
 }
 
 .stat-label {
   display: block;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted);
@@ -355,8 +377,9 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
 
 .stat-value {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 500;
+  word-break: break-word;
 }
 
 .stat-value.mono { font-family: var(--font-mono); color: var(--gold-soft); }
@@ -375,62 +398,49 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
   transition: width 0.4s ease;
 }
 
-/* ---------------- Injury panel ---------------- */
+/* ---------------- Player news panel ---------------- */
 
-.injury-panel {
-  grid-column: 1 / -1;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px;
-}
+.news-list { display: flex; flex-direction: column; gap: 10px; }
 
-.injury-list { display: flex; flex-direction: column; gap: 10px; }
-
-.injury-row {
+.news-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--red-out);
+  border-left: 3px solid var(--text-muted);
   border-radius: 8px;
-  padding: 12px 16px;
+  padding: 12px 14px;
   flex-wrap: wrap;
 }
 
-.injury-row.doubtful { border-left-color: var(--gold); }
+.news-row.unavailable { border-left-color: var(--red-out); }
+.news-row.doubtful { border-left-color: var(--gold); }
 
-.injury-name { font-weight: 600; }
-.injury-meta { color: var(--text-muted); font-size: 0.8rem; font-family: var(--font-mono); }
-.injury-status {
+.news-name { font-weight: 600; font-size: 0.92rem; }
+.news-meta { color: var(--text-muted); font-size: 0.76rem; font-family: var(--font-mono); }
+.news-status {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--red-out);
-  border: 1px solid var(--red-out);
+  color: var(--text-muted);
+  border: 1px solid var(--text-muted);
   border-radius: 20px;
   padding: 2px 10px;
+  white-space: nowrap;
 }
-.injury-row.doubtful .injury-status { color: var(--gold-soft); border-color: var(--gold-soft); }
-.injury-news { flex-basis: 100%; color: var(--text-muted); font-size: 0.85rem; }
+.news-row.unavailable .news-status { color: var(--red-out); border-color: var(--red-out); }
+.news-row.doubtful .news-status { color: var(--gold-soft); border-color: var(--gold-soft); }
+.news-item-text { flex-basis: 100%; color: var(--text-muted); font-size: 0.82rem; }
 
 /* ---------------- Table panel ---------------- */
 
-.table-panel {
-  grid-column: 1 / -1;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px;
-}
-
-.pos-tabs { display: flex; gap: 6px; }
+.pos-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .pos-tab {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-muted);
@@ -443,25 +453,29 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
 .table-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  width: 100%;
+  border-radius: 8px;
 }
 
-.player-table { width: 100%; min-width: 560px; border-collapse: collapse; }
+.player-table { width: 100%; min-width: 540px; border-collapse: collapse; }
 
 .player-table th {
   text-align: left;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
   padding: 10px 8px;
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .player-table td {
   padding: 10px 8px;
   border-bottom: 1px solid var(--border);
-  font-size: 0.88rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .player-table tbody tr:hover { background: var(--panel-2); }
@@ -478,17 +492,9 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
 
 /* ---------------- Transfers panel ---------------- */
 
-.transfers-panel {
-  grid-column: 1 / -1;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px;
-}
-
 .transfers-hint {
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   margin-bottom: 14px;
 }
 
@@ -497,11 +503,11 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
 .transfer-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 12px 16px;
+  padding: 12px 14px;
   flex-wrap: wrap;
 }
 
@@ -512,16 +518,16 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
   margin-left: auto;
   font-family: var(--font-mono);
   color: var(--gold-soft);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 /* ---------------- Footer ---------------- */
 
 .site-footer {
   text-align: center;
-  padding: 24px;
+  padding: 20px 16px;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   border-top: 1px solid var(--border);
 }
 
@@ -532,11 +538,46 @@ input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 1px
   letter-spacing: 0.04em;
 }
 
-/* ---------------- Responsive ---------------- */
+/* ================================================
+   Responsive breakpoints
+   Mobile-first base styles above (<640px assumed)
+   ================================================ */
 
-@media (max-width: 860px) {
-  .dashboard { grid-template-columns: 1fr; }
-  .pitch { min-height: 420px; }
+/* Small tablets and up */
+@media (min-width: 640px) {
+  .hero { padding: 56px 24px 40px; }
+  .dashboard { padding: 28px 20px 56px; gap: 20px; }
+  .pitch-panel, .transfers-panel, .news-panel, .table-panel, .stat-card { padding: 20px; }
+  .stats-panel { grid-template-columns: repeat(4, 1fr); }
+  .player-chip { min-width: 88px; max-width: 130px; }
+  .player-chip .name { font-size: 0.78rem; }
+  .player-chip .meta { font-size: 0.68rem; }
+}
+
+/* Desktop / laptop: bring back the two-column layout */
+@media (min-width: 960px) {
+  .hero { padding: 64px 24px 48px; }
+  .dashboard {
+    grid-template-columns: 2fr 1fr;
+    padding: 32px 24px 64px;
+    gap: 24px;
+  }
+  .pitch-panel { grid-column: 1; grid-row: 1; }
+  .stats-panel {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .transfers-panel,
+  .news-panel,
+  .table-panel {
+    grid-column: 1 / -1;
+  }
+  .panel-header h2 { font-size: 1.15rem; }
+  .pitch { min-height: 480px; padding: 20px 12px; }
+  .pitch-center-circle { width: 90px; height: 90px; }
 }
 
 /* ---------------- Reduced motion ---------------- */

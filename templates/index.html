@@ -15,16 +15,6 @@
   <div class="hero-content">
     <h1 class="wordmark">FPL SQUAD<span class="accent">LAB</span></h1>
     <p class="tagline">Data-driven Fantasy Premier League team selection — built on live prices, form, fixtures and linear programming, not gut feel.</p>
-
-    <div class="controls">
-      <label class="budget-label">
-        Budget (£m)
-        <input type="number" id="budget-input" value="100.0" step="0.5" min="80" max="100">
-      </label>
-      <button id="generate-btn" class="btn btn-gold">Generate Optimal Squad</button>
-      <button id="refresh-btn" class="btn btn-ghost" title="Force re-fetch live data">↻ Refresh data</button>
-    </div>
-    <p class="gw-tag" id="gw-tag"></p>
   </div>
 </header>
 
@@ -50,6 +40,21 @@
     <div id="news-list" class="news-list">
       <p class="table-empty">Loading player news…</p>
     </div>
+  </section>
+
+  <section class="generator-panel">
+    <div class="panel-header">
+      <h2>Squad Generator</h2>
+    </div>
+    <div class="controls">
+      <label class="budget-label">
+        Budget (£m)
+        <input type="number" id="budget-input" value="100.0" step="0.5" min="80" max="100">
+      </label>
+      <button id="generate-btn" class="btn btn-gold">Generate Optimal Squad</button>
+      <button id="refresh-btn" class="btn btn-ghost" title="Force re-fetch live data">↻ Refresh data</button>
+    </div>
+    <p class="gw-tag" id="gw-tag"></p>
   </section>
 
   <section class="table-panel">

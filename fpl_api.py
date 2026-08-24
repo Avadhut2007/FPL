@@ -11,7 +11,7 @@ import requests
 
 import config
 
-HEADERS = {"User-Agent": "Mozilla/5.0 (FPL-Optimizer/1.0)"}
+HEADERS = {"User-Agent": "Mozilla/5.0 (FPL-Squad-Lab/1.0)"}
 
 
 def _cache_path(name: str) -> str:
@@ -36,7 +36,6 @@ def _write_cache(name: str, data):
 
 
 def _get(url: str, cache_name: str = None, force_refresh: bool = False, retries: int = 3):
-    """GET a URL with optional on-disk caching and simple retry/backoff."""
     if cache_name and not force_refresh:
         cached = _read_cache(cache_name)
         if cached is not None:
@@ -58,39 +57,32 @@ def _get(url: str, cache_name: str = None, force_refresh: bool = False, retries:
 
 
 def get_bootstrap_data(force_refresh: bool = False) -> dict:
-    """All players, teams, positions, gameweeks — the main data dump."""
     return _get(config.BOOTSTRAP_URL, cache_name="bootstrap", force_refresh=force_refresh)
 
 
 def get_fixtures(force_refresh: bool = False) -> list:
-    """Full season fixture list with difficulty ratings."""
     return _get(config.FIXTURES_URL, cache_name="fixtures", force_refresh=force_refresh)
 
 
 def get_player_history(player_id: int, force_refresh: bool = False) -> dict:
-    """Per-gameweek history + upcoming fixtures for one player."""
     url = config.PLAYER_HISTORY_URL.format(player_id=player_id)
     return _get(url, cache_name=f"player_{player_id}", force_refresh=force_refresh)
 
 
 def get_entry_picks(team_id: int, gw: int, force_refresh: bool = False) -> dict:
-    """Your own current squad for a given gameweek (needs your FPL team ID)."""
     url = config.ENTRY_PICKS_URL.format(team_id=team_id, gw=gw)
     return _get(url, cache_name=f"entry_{team_id}_{gw}", force_refresh=force_refresh)
 
 
 def get_entry_info(team_id: int, force_refresh: bool = False) -> dict:
-    """Team name, manager name, and overall rank/points for a given FPL team ID."""
     url = config.ENTRY_URL.format(team_id=team_id)
     return _get(url, cache_name=f"entry_info_{team_id}", force_refresh=force_refresh)
 
 
 def get_current_gameweek(bootstrap: dict) -> int:
-    """Find the next unfinished gameweek from the events list."""
     for event in bootstrap["events"]:
         if event.get("is_next"):
             return event["id"]
-    # fallback: first event that isn't finished
     for event in bootstrap["events"]:
         if not event.get("finished"):
             return event["id"]

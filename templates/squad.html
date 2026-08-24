@@ -1,39 +1,36 @@
 {% extends "base.html" %}
-{% block title %}Optimal Squad — FPL Squad Lab{% endblock %}
+{% block title %}Squad Builder — FPL Squad Lab{% endblock %}
 {% block content %}
 
 <header class="page-header">
-  <h1>Optimal Squad</h1>
-  <p>Build the mathematically best 15-man squad within your budget, using live prices, form, and fixtures.</p>
+  <h1>Squad Builder</h1>
+  <p>Pick the highest-scoring valid 15-man squad under your budget, solved with linear programming.</p>
   <div class="controls">
-    <label class="budget-label">
-      Budget (£m)
-      <input type="number" id="budget-input" value="100.0" step="0.5" min="80" max="100">
+    <label class="budget-label">Budget (£m)
+      <input type="number" id="budget-input" value="100.0" step="0.5" min="80" max="110">
     </label>
-    <button id="generate-btn" class="btn btn-gold">Generate Optimal Squad</button>
-    <button id="refresh-btn" class="btn btn-ghost" title="Force re-fetch live data">↻ Refresh data</button>
+    <button class="btn btn-gold" id="generate-btn">Generate Optimal Squad</button>
+    <button class="btn btn-ghost" id="refresh-btn">↻ Refresh data</button>
   </div>
   <p class="gw-tag" id="gw-tag"></p>
 </header>
 
 <main class="page-main">
 
-  <section class="pitch-panel" id="pitch-panel">
+  <section class="pitch-panel">
     <div class="panel-header">
       <h2>Starting XI</h2>
       <span class="formation-badge" id="formation-badge">—</span>
     </div>
-
-    <div class="pitch" id="pitch">
-      <div class="pitch-center-circle"></div>
+    <div class="pitch">
+      <div class="pitch-placeholder" id="pitch-placeholder">Click "Generate Optimal Squad" to build your team.</div>
       <div class="pitch-halfway"></div>
-      <div class="pitch-row" data-pos="FWD" id="row-fwd"></div>
-      <div class="pitch-row" data-pos="MID" id="row-mid"></div>
-      <div class="pitch-row" data-pos="DEF" id="row-def"></div>
-      <div class="pitch-row" data-pos="GKP" id="row-gkp"></div>
-      <p class="pitch-placeholder" id="pitch-placeholder">Click "Generate Optimal Squad" to build your team</p>
+      <div class="pitch-center-circle"></div>
+      <div class="pitch-row" id="row-fwd"></div>
+      <div class="pitch-row" id="row-mid"></div>
+      <div class="pitch-row" id="row-def"></div>
+      <div class="pitch-row" id="row-gkp"></div>
     </div>
-
     <div class="dugout">
       <span class="dugout-label">Bench</span>
       <div class="dugout-row" id="dugout-row"></div>
@@ -62,9 +59,9 @@
 
   <section class="table-panel">
     <div class="panel-header">
-      <h2>Top Rated Players</h2>
-      <div class="pos-tabs" id="pos-tabs">
-        <button class="pos-tab active" data-pos="ALL">ALL</button>
+      <h2>Top Players</h2>
+      <div class="pos-tabs">
+        <button class="pos-tab active" data-pos="ALL">All</button>
         <button class="pos-tab" data-pos="GKP">GKP</button>
         <button class="pos-tab" data-pos="DEF">DEF</button>
         <button class="pos-tab" data-pos="MID">MID</button>
@@ -74,15 +71,14 @@
     <div class="table-scroll">
       <table class="player-table">
         <thead>
-          <tr><th>Player</th><th>Team</th><th>Pos</th><th>Price</th><th>Form</th><th>Pred. Pts</th><th>Value</th></tr>
+          <tr><th>Player</th><th>Team</th><th>Pos</th><th>Price</th><th>Form</th><th>Pred.</th><th>Value</th></tr>
         </thead>
         <tbody id="table-body">
-          <tr><td colspan="7" class="table-empty">Loading top players…</td></tr>
+          <tr><td colspan="7" class="table-empty">Loading…</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
 </main>
-
 {% endblock %}

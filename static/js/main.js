@@ -274,8 +274,9 @@ if (el("news-list")) {
   setInterval(loadPlayerNews, 5 * 60 * 1000);
 }
 
+
 // =========================================================
-// FIXTURES PAGE
+// FIXTURES PAGE (single gameweek at a time, via dropdown)
 // =========================================================
 
 function difficultyClass(d) {
@@ -284,38 +285,38 @@ function difficultyClass(d) {
   return "fdr-hard";
 }
 
-async function loadFixtures() {
+async function loadFixtures(gw) {
   const box = el("fixtures-scroll");
+  box.innerHTML = `<p class="table-empty">Loading fixtures…</p>`;
+
   try {
-    const data = await fetchJSON("/api/fixtures");
-    el("fixtures-gw-tag").textContent = `From GW${data.gameweek}`;
+    const url = gw ? `/api/fixtures?gw=${gw}` : "/api/fixtures";
+    const data = await fetchJSON(url);
+
+    const select = el("fixtures-gw-select");
+    if (select.options.length === 0) {
+      data.available_gameweeks.forEach((g) => {
+        const opt = document.createElement("option");
+        opt.value = g;
+        opt.textContent = g === data.current_gameweek ? `Gameweek ${g} (current)` : `Gameweek ${g}`;
+        select.appendChild(opt);
+      });
+    }
+    select.value = data.gameweek;
+    el("fixtures-gw-badge").textContent = `GW ${data.gameweek}`;
 
     if (data.fixtures.length === 0) {
-      box.innerHTML = `<p class="table-empty">No upcoming fixtures found.</p>`;
+      box.innerHTML = `<p class="table-empty">No fixtures found for this gameweek.</p>`;
       return;
     }
 
-    const byGw = {};
-    data.fixtures.forEach((f) => {
-      if (!byGw[f.gw]) byGw[f.gw] = [];
-      byGw[f.gw].push(f);
-    });
-
-    box.innerHTML = Object.entries(byGw)
+    box.innerHTML = data.fixtures
       .map(
-        ([gw, matches]) => `
-      <div class="fixture-gw-group">
-        <h3 class="fixture-gw-title">Gameweek ${gw}</h3>
-        ${matches
-          .map(
-            (f) => `
-          <div class="fixture-row">
-            <span class="fixture-team ${difficultyClass(f.home_difficulty)}">${f.home}</span>
-            <span class="fixture-vs">vs</span>
-            <span class="fixture-team ${difficultyClass(f.away_difficulty)}">${f.away}</span>
-          </div>`
-          )
-          .join("")}
+        (f) => `
+      <div class="fixture-row">
+        <span class="fixture-team ${difficultyClass(f.home_difficulty)}">${f.home}</span>
+        <span class="fixture-vs">vs</span>
+        <span class="fixture-team ${difficultyClass(f.away_difficulty)}">${f.away}</span>
       </div>`
       )
       .join("");
@@ -326,6 +327,7 @@ async function loadFixtures() {
 
 if (el("fixtures-scroll")) {
   loadFixtures();
+  el("fixtures-gw-select").addEventListener("change", (e) => loadFixtures(parseInt(e.target.value)));
 }
 
 // =========================================================

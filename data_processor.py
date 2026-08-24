@@ -130,6 +130,26 @@ def build_fixtures_list(bootstrap: dict, fixtures: list, current_gw: int, lookah
         for f in upcoming
     ]
 
+def get_available_gameweeks(bootstrap: dict) -> list:
+    """All gameweek IDs that have at least one fixture, in order."""
+    return sorted({e["id"] for e in bootstrap["events"]})
+
+
+def build_fixtures_for_gw(bootstrap: dict, fixtures: list, gw: int) -> list:
+    """Fixtures for a single gameweek, with per-side difficulty."""
+    team_lookup = build_team_lookup(bootstrap)
+    matches = [f for f in fixtures if f.get("event") == gw]
+    matches.sort(key=lambda f: f.get("kickoff_time") or "")
+    return [
+        {
+            "gw": f["event"],
+            "home": team_lookup.get(f["team_h"], "UNK"),
+            "away": team_lookup.get(f["team_a"], "UNK"),
+            "home_difficulty": f["team_h_difficulty"],
+            "away_difficulty": f["team_a_difficulty"],
+        }
+        for f in matches
+    ]
 
 def build_player_news(bootstrap: dict) -> list:
     team_lookup = build_team_lookup(bootstrap)

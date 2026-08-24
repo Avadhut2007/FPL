@@ -63,40 +63,26 @@ a { color: inherit; text-decoration: none; }
 }
 .nav-brand .accent { color: var(--gold); }
 
-.nav-toggle {
-  display: block;
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-size: 1.1rem;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
+.nav-contact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.nav-links {
-  display: none;
-  flex-direction: column;
-  gap: 4px;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
-  padding: 10px;
-}
-.nav-links.open { display: flex; }
-
-.nav-links a {
-  padding: 12px 14px;
+.nav-contact-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
+  border: 1px solid var(--border);
   color: var(--text-muted);
-  font-size: 0.92rem;
-  font-weight: 500;
+  background: var(--panel-2);
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
-.nav-links a:hover { background: var(--panel-2); color: var(--text); }
-.nav-links a.active { background: var(--gold); color: #1A1400; font-weight: 600; }
+.nav-contact-link svg { width: 16px; height: 16px; }
+.nav-contact-link:hover { border-color: var(--gold); color: var(--gold-soft); }
 
 /* ---------------- Hero (home page) ---------------- */
 
@@ -689,18 +675,7 @@ input[type="number"]:focus, .select-input:focus { outline: 2px solid var(--gold)
 }
 
 @media (min-width: 768px) {
-  .nav-toggle { display: none; }
   .navbar { padding: 16px 32px; }
-  .nav-links {
-    display: flex;
-    flex-direction: row;
-    position: static;
-    background: none;
-    border: none;
-    padding: 0;
-    gap: 4px;
-  }
-  .nav-links a { padding: 8px 14px; font-size: 0.85rem; }
 }
 
 @media (min-width: 960px) {

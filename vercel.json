@@ -1,13 +1,11 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/index.py",
-      "use": "@vercel/python",
-      "config": { "includeFiles": ["templates/**", "static/**", "config.py", "fpl_api.py", "data_processor.py", "predictor.py", "optimizer.py", "app.py"] }
-    }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api" }
   ],
-  "routes": [
-    { "src": "/(.*)", "dest": "api/index.py" }
-  ]
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30,
+      "includeFiles": "{templates/**,static/**}"
+    }
+  }
 }

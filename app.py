@@ -184,9 +184,9 @@ def api_transfers():
         if not budget_bank:
             budget_bank = picks_data.get("entry_history", {}).get("bank", 0) / 10.0
 
-        suggestions = optimizer.suggest_transfers(
-            current_ids, df, free_transfers=free_transfers, budget_bank=budget_bank,
-            history_fetcher=fpl_api.get_player_history,
+       suggestions = optimizer.suggest_transfers(
+    current_ids, df, free_transfers=free_transfers, budget_bank=budget_bank,
+)
         )
         return jsonify({"ok": True, "gameweek": gw, "suggestions": suggestions})
     except Exception as e:

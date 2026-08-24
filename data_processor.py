@@ -2,7 +2,8 @@
 Turns raw FPL API JSON into clean, page-ready data:
   - build_player_dataframe / filter_available_players -> the scored player pool
   - build_team_squad     -> a manager's 15-man squad for the Transfers page
-  - build_fixtures_list  -> upcoming fixtures with difficulty, for the Fixtures page
+  - build_fixtures_list  -> upcoming fixtures with difficulty, for the Fixtures page (legacy, unused by current UI)
+  - get_available_gameweeks / build_fixtures_for_gw -> single-gameweek fixtures, for the Fixtures page
   - build_player_news    -> injuries/doubts/suspensions, for the News page
 """
 import pandas as pd
@@ -130,6 +131,7 @@ def build_fixtures_list(bootstrap: dict, fixtures: list, current_gw: int, lookah
         for f in upcoming
     ]
 
+
 def get_available_gameweeks(bootstrap: dict) -> list:
     """All gameweek IDs that have at least one fixture, in order."""
     return sorted({e["id"] for e in bootstrap["events"]})
@@ -150,6 +152,7 @@ def build_fixtures_for_gw(bootstrap: dict, fixtures: list, gw: int) -> list:
         }
         for f in matches
     ]
+
 
 def build_player_news(bootstrap: dict) -> list:
     team_lookup = build_team_lookup(bootstrap)

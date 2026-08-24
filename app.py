@@ -224,8 +224,20 @@ def api_fixtures():
         bootstrap = fpl_api.get_bootstrap_data()
         fixtures = fpl_api.get_fixtures()
         current_gw = fpl_api.get_current_gameweek(bootstrap)
-        items = data_processor.build_fixtures_list(bootstrap, fixtures, current_gw)
-        return jsonify({"ok": True, "gameweek": current_gw, "fixtures": items})
+        available_gameweeks = data_processor.get_available_gameweeks(bootstrap)
+
+        gw = request.args.get("gw", default=current_gw, type=int)
+        if gw not in available_gameweeks:
+            gw = current_gw
+
+        items = data_processor.build_fixtures_for_gw(bootstrap, fixtures, gw)
+        return jsonify({
+            "ok": True,
+            "gameweek": gw,
+            "current_gameweek": current_gw,
+            "available_gameweeks": available_gameweeks,
+            "fixtures": items,
+        })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

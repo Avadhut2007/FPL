@@ -1,6 +1,8 @@
-
 // ============================================
-// FPL Squad Lab — frontend logic
+// FPL Squad Lab — frontend logic (multi-page)
+// Every loader below guards on element presence, so this one file can be
+// safely included on every page without throwing on pages that don't have
+// the relevant DOM nodes.
 // ============================================
 
 const el = (id) => document.getElementById(id);
@@ -12,16 +14,34 @@ async function fetchJSON(url) {
   return data;
 }
 
-function chipHTML(player, isCaptain, isVice) {
-  const badge = isCaptain ? '<span class="armband">C</span>' : (isVice ? '<span class="armband" style="background:#8A9A93;color:#0A0F0D">V</span>' : "");
+// ---------------- Navbar (mobile toggle) ----------------
+
+if (el("nav-toggle")) {
+  el("nav-toggle").addEventListener("click", () => {
+    el("nav-links").classList.toggle("open");
+  });
+}
+
+// ---------------- Shared chip renderer ----------------
+
+function chipHTML(player, isCaptain, isVice, pointsLabel) {
+  const badge = isCaptain
+    ? '<span class="armband">C</span>'
+    : isVice
+    ? '<span class="armband" style="background:#8A9A93;color:#0A0F0D">V</span>'
+    : "";
   const capClass = isCaptain ? "captain" : "";
   return `
     <div class="player-chip ${capClass}">
       ${badge}
       <span class="name">${player.name}</span>
-      <span class="meta">${player.team} · £${player.price.toFixed(1)} · ${player.predicted_points.toFixed(1)}pts</span>
+      <span class="meta">${player.team} · ${pointsLabel}</span>
     </div>`;
 }
+
+// =========================================================
+// SQUAD PAGE
+// =========================================================
 
 function renderPitch(data) {
   el("pitch-placeholder").style.display = "none";
@@ -32,13 +52,14 @@ function renderPitch(data) {
 
   const rowMap = { GKP: "row-gkp", DEF: "row-def", MID: "row-mid", FWD: "row-fwd" };
   Object.entries(groups).forEach(([pos, players]) => {
-    const rowEl = el(rowMap[pos]);
-    rowEl.innerHTML = players
-      .map((p) => chipHTML(p, p.id === data.captain.id, p.id === data.vice_captain.id))
+    el(rowMap[pos]).innerHTML = players
+      .map((p) => chipHTML(p, p.id === data.captain.id, p.id === data.vice_captain.id, `£${p.price.toFixed(1)} · ${p.predicted_points.toFixed(1)}pts`))
       .join("");
   });
 
-  el("dugout-row").innerHTML = data.bench.map((p) => chipHTML(p, false, false)).join("");
+  el("dugout-row").innerHTML = data.bench
+    .map((p) => chipHTML(p, false, false, `£${p.price.toFixed(1)} · ${p.predicted_points.toFixed(1)}pts`))
+    .join("");
 
   el("stat-points").textContent = data.projected_points.toFixed(1);
   el("stat-budget").textContent = `£${data.budget_used.toFixed(1)}m / £${data.budget_total.toFixed(1)}m`;
@@ -82,10 +103,6 @@ async function refreshData() {
   }
 }
 
-function positionClass(pos) {
-  return pos.toLowerCase();
-}
-
 async function loadTopPlayers(position) {
   const tbody = el("table-body");
   tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Loading…</td></tr>`;
@@ -115,6 +132,116 @@ async function loadTopPlayers(position) {
   }
 }
 
+if (el("generate-btn")) {
+  el("generate-btn").addEventListener("click", generateSquad);
+  el("refresh-btn").addEventListener("click", refreshData);
+  document.querySelectorAll(".pos-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".pos-tab").forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      loadTopPlayers(tab.dataset.pos);
+    });
+  });
+  loadTopPlayers("ALL");
+}
+
+// =========================================================
+// TRANSFERS PAGE (FotMob-style team view + suggestions)
+// =========================================================
+
+function fmChipHTML(player) {
+  const badge = player.is_captain
+    ? '<span class="armband">C</span>'
+    : player.is_vice_captain
+    ? '<span class="armband" style="background:#8A9A93;color:#0A0F0D">V</span>'
+    : "";
+  const capClass = player.is_captain ? "captain" : "";
+  const flag = player.status !== "a" ? ' <span style="color:#C1483F">●</span>' : "";
+  return `
+    <div class="player-chip ${capClass}">
+      ${badge}
+      <span class="name">${player.name}${flag}</span>
+      <span class="meta">${player.team} · £${player.price.toFixed(1)}</span>
+    </div>`;
+}
+
+function renderFotmobPitch(data) {
+  const squad = data.squad;
+  const starters = squad.filter((p) => p.slot <= 11);
+  const bench = squad.filter((p) => p.slot > 11).sort((a, b) => a.slot - b.slot);
+
+  const groups = { GKP: [], DEF: [], MID: [], FWD: [] };
+  starters.forEach((p) => groups[p.position] && groups[p.position].push(p));
+
+  const rowMap = { GKP: "fm-row-gkp", DEF: "fm-row-def", MID: "fm-row-mid", FWD: "fm-row-fwd" };
+  Object.entries(groups).forEach(([pos, players]) => {
+    el(rowMap[pos]).innerHTML = players.map(fmChipHTML).join("");
+  });
+
+  el("fm-dugout-row").innerHTML = bench.map(fmChipHTML).join("");
+
+  el("team-name-display").textContent = data.team_name;
+  el("manager-name-display").textContent = data.manager_name;
+  el("team-points").textContent = data.overall_points ?? "—";
+  el("team-rank").textContent = data.overall_rank ? data.overall_rank.toLocaleString() : "—";
+  el("team-bank").textContent = `£${data.bank.toFixed(1)}m`;
+  el("team-card").style.display = "block";
+}
+
+async function analyzeMyTeam() {
+  const teamId = el("team-id-input").value;
+  const freeTransfers = el("free-transfers-input").value || 1;
+  const listEl = el("transfers-list");
+  const btn = el("load-team-btn");
+
+  if (!teamId) {
+    listEl.innerHTML = `<p class="transfers-hint">Enter a team ID first.</p>`;
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Analyzing…";
+  listEl.innerHTML = `<p class="transfers-hint">Fetching your squad and checking for upgrades…</p>`;
+
+  try {
+    const [teamData, transferData] = await Promise.all([
+      fetchJSON(`/api/team/${teamId}`),
+      fetchJSON(`/api/transfers?team_id=${teamId}&free_transfers=${freeTransfers}`),
+    ]);
+
+    renderFotmobPitch(teamData);
+
+    if (transferData.suggestions.length === 0) {
+      listEl.innerHTML = `<p class="transfers-hint">No beneficial transfers found — your squad looks solid.</p>`;
+    } else {
+      listEl.innerHTML = transferData.suggestions
+        .map(
+          (s) => `
+        <div class="transfer-row">
+          <span class="transfer-out">OUT: ${s.out} (${s.out_points})</span>
+          <span class="transfer-arrow">→</span>
+          <span class="transfer-in">IN: ${s.in} (${s.in_points})</span>
+          <span class="transfer-gain">+${s.gain} pts · ${s.price_delta >= 0 ? "+" : ""}${s.price_delta}m</span>
+        </div>`
+        )
+        .join("");
+    }
+  } catch (e) {
+    listEl.innerHTML = `<p class="transfers-hint">Error: ${e.message}</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Analyze My Team";
+  }
+}
+
+if (el("load-team-btn")) {
+  el("load-team-btn").addEventListener("click", analyzeMyTeam);
+}
+
+// =========================================================
+// PLAYER NEWS PAGE
+// =========================================================
+
 async function loadPlayerNews() {
   const listEl = el("news-list");
   try {
@@ -125,7 +252,7 @@ async function loadPlayerNews() {
     }
     listEl.innerHTML = data.news
       .map((p) => {
-        const rowClass = p.status === "d" ? "doubtful" : (p.status !== "a" ? "unavailable" : "");
+        const rowClass = p.status === "d" ? "doubtful" : p.status !== "a" ? "unavailable" : "";
         const chance = p.chance_of_playing_next_round;
         const chanceText = chance === null || chance === undefined ? "" : ` · ${chance}% chance next GW`;
         return `
@@ -142,56 +269,102 @@ async function loadPlayerNews() {
   }
 }
 
-async function checkTransfers() {
-  const teamId = el("team-id-input").value;
-  const freeTransfers = el("free-transfers-input").value || 1;
-  const listEl = el("transfers-list");
+if (el("news-list")) {
+  loadPlayerNews();
+  setInterval(loadPlayerNews, 5 * 60 * 1000);
+}
 
-  if (!teamId) {
-    listEl.innerHTML = `<p class="transfers-hint">Enter a team ID first.</p>`;
-    return;
-  }
+// =========================================================
+// FIXTURES PAGE
+// =========================================================
 
-  listEl.innerHTML = `<p class="transfers-hint">Checking your squad…</p>`;
+function difficultyClass(d) {
+  if (d <= 2) return "fdr-easy";
+  if (d === 3) return "fdr-mid";
+  return "fdr-hard";
+}
+
+async function loadFixtures() {
+  const box = el("fixtures-scroll");
   try {
-    const data = await fetchJSON(`/api/transfers?team_id=${teamId}&free_transfers=${freeTransfers}`);
-    if (data.suggestions.length === 0) {
-      listEl.innerHTML = `<p class="transfers-hint">No beneficial transfers found — your squad looks solid.</p>`;
+    const data = await fetchJSON("/api/fixtures");
+    el("fixtures-gw-tag").textContent = `From GW${data.gameweek}`;
+
+    if (data.fixtures.length === 0) {
+      box.innerHTML = `<p class="table-empty">No upcoming fixtures found.</p>`;
       return;
     }
-    listEl.innerHTML = data.suggestions
+
+    const byGw = {};
+    data.fixtures.forEach((f) => {
+      if (!byGw[f.gw]) byGw[f.gw] = [];
+      byGw[f.gw].push(f);
+    });
+
+    box.innerHTML = Object.entries(byGw)
       .map(
-        (s) => `
-      <div class="transfer-row">
-        <span class="transfer-out">OUT: ${s.out} (${s.out_points})</span>
-        <span class="transfer-arrow">→</span>
-        <span class="transfer-in">IN: ${s.in} (${s.in_points})</span>
-        <span class="transfer-gain">+${s.gain} pts · ${s.price_delta >= 0 ? "+" : ""}${s.price_delta}m</span>
+        ([gw, matches]) => `
+      <div class="fixture-gw-group">
+        <h3 class="fixture-gw-title">Gameweek ${gw}</h3>
+        ${matches
+          .map(
+            (f) => `
+          <div class="fixture-row">
+            <span class="fixture-team ${difficultyClass(f.home_difficulty)}">${f.home}</span>
+            <span class="fixture-vs">vs</span>
+            <span class="fixture-team ${difficultyClass(f.away_difficulty)}">${f.away}</span>
+          </div>`
+          )
+          .join("")}
       </div>`
       )
       .join("");
   } catch (e) {
-    listEl.innerHTML = `<p class="transfers-hint">Error: ${e.message}</p>`;
+    box.innerHTML = `<p class="table-empty">Error loading fixtures: ${e.message}</p>`;
   }
 }
 
-// ---------------- Event wiring ----------------
+if (el("fixtures-scroll")) {
+  loadFixtures();
+}
 
-el("generate-btn").addEventListener("click", generateSquad);
-el("refresh-btn").addEventListener("click", refreshData);
-el("transfers-btn").addEventListener("click", checkTransfers);
+// =========================================================
+// PAST PERFORMANCE PAGE
+// =========================================================
 
-document.querySelectorAll(".pos-tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".pos-tab").forEach((t) => t.classList.remove("active"));
-    tab.classList.add("active");
-    loadTopPlayers(tab.dataset.pos);
-  });
-});
+async function loadHistory() {
+  const tbody = el("history-body");
+  try {
+    const data = await fetchJSON("/api/history?n=15");
+    if (data.players.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="table-empty">No history data found.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.players
+      .map((p) => {
+        const seasonCells = [0, 1, 2]
+          .map((i) => {
+            const s = p.seasons[i];
+            return s
+              ? `<td class="mono-cell">${s.season}: ${s.points}</td>`
+              : `<td class="mono-cell table-empty-cell">—</td>`;
+          })
+          .join("");
+        return `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.team}</td>
+          <td>${p.position}</td>
+          <td class="mono-cell">${p.current_points}</td>
+          ${seasonCells}
+        </tr>`;
+      })
+      .join("");
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Error: ${e.message}</td></tr>`;
+  }
+}
 
-// Initial load
-loadTopPlayers("ALL");
-loadPlayerNews();
-
-// Auto-update player news every 5 minutes without needing a page reload
-setInterval(loadPlayerNews, 5 * 60 * 1000);
+if (el("history-body")) {
+  loadHistory();
+}

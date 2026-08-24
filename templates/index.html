@@ -5,49 +5,42 @@
 <header class="hero">
   <div class="hero-stripes"></div>
   <div class="hero-content">
-    <h1 class="wordmark">FPL SQUAD<span class="accent">LAB</span></h1>
-    <p class="tagline">Data-driven Fantasy Premier League tools — built on live prices, form, fixtures and linear programming, not gut feel.</p>
+    <h1 class="wordmark">Squad <span class="accent">Lab</span></h1>
+    <p class="tagline">Build the mathematically-best Fantasy Premier League squad, get transfer suggestions for your real team, and track form, fixtures &amp; news — all from live FPL data.</p>
   </div>
 </header>
 
-<main class="home-grid">
-
-  <a href="{{ url_for('transfers_page') }}" class="nav-card">
-    <span class="nav-card-icon">⇄</span>
-    <h2>Transfer Suggestions</h2>
-    <p>Enter your Team ID to see your full squad and get optimal transfer suggestions.</p>
-  </a>
-
-  <a href="{{ url_for('squad_page') }}" class="nav-card">
+<div class="home-grid">
+  <a href="/squad" class="nav-card">
     <span class="nav-card-icon">⚽</span>
-    <h2>Optimal Squad</h2>
-    <p>Build the mathematically best 15-man squad within any budget.</p>
+    <h2>Squad Builder</h2>
+    <p>Generate an optimal 15-man squad under budget using linear programming.</p>
   </a>
-
-  <a href="{{ url_for('chart_page') }}" class="nav-card">
+  <a href="/transfers" class="nav-card">
+    <span class="nav-card-icon">🔁</span>
+    <h2>Transfers</h2>
+    <p>Load your real team by ID and get ranked upgrade suggestions.</p>
+  </a>
+  <a href="/chart" class="nav-card">
     <span class="nav-card-icon">📊</span>
-    <h2>Points Chart</h2>
-    <p>Visual breakdown of top players by predicted and total points.</p>
+    <h2>Charts</h2>
+    <p>Compare predicted vs. total points across the top players.</p>
   </a>
-
-  <a href="{{ url_for('news_page') }}" class="nav-card">
+  <a href="/news" class="nav-card">
     <span class="nav-card-icon">📰</span>
     <h2>Player News</h2>
-    <p>Live injury, suspension, and availability updates — auto-refreshing.</p>
+    <p>Injuries, doubts and suspensions, pulled straight from the FPL feed.</p>
   </a>
-
-  <a href="{{ url_for('fixtures_page') }}" class="nav-card">
-    <span class="nav-card-icon">📅</span>
+  <a href="/fixtures" class="nav-card">
+    <span class="nav-card-icon">🗓️</span>
     <h2>Fixtures</h2>
-    <p>Upcoming fixtures for every club with difficulty ratings.</p>
+    <p>Upcoming fixture difficulty for every club, gameweek by gameweek.</p>
   </a>
-
-  <a href="{{ url_for('history_page') }}" class="nav-card">
-    <span class="nav-card-icon">🏆</span>
+  <a href="/history" class="nav-card">
+    <span class="nav-card-icon">📈</span>
     <h2>Past Performance</h2>
-    <p>How top players scored across previous FPL seasons.</p>
+    <p>How every player did in previous seasons vs. this season so far.</p>
   </a>
-
-</main>
+</div>
 
 {% endblock %}

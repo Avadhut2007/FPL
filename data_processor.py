@@ -1,9 +1,10 @@
 """
 Turns raw FPL API JSON into clean, page-ready data:
   - build_player_dataframe / filter_available_players -> the scored player pool
-  - build_team_squad     -> a manager's 15-man squad for the Transfers page
-  - build_fixtures_list  -> upcoming fixtures with difficulty, for the Fixtures page
-  - build_player_news    -> injuries/doubts/suspensions, for the News page
+  - build_team_squad          -> a manager's 15-man squad for the Transfers page
+  - get_available_gameweeks   -> which gameweeks have fixtures, for the dropdown
+  - build_fixtures_for_gw     -> fixtures for exactly one gameweek, for the Fixtures page
+  - build_player_news         -> injuries/doubts/suspensions, for the News page
 """
 import pandas as pd
 
@@ -107,16 +108,19 @@ def build_team_squad(picks_data: dict, bootstrap: dict) -> list:
     return sorted(squad, key=lambda x: x["slot"])
 
 
-def build_fixtures_list(bootstrap: dict, fixtures: list, current_gw: int, lookahead: int = None) -> list:
-    lookahead = lookahead or config.FIXTURE_LOOKAHEAD_GWS
+def get_available_gameweeks(fixtures: list) -> list:
+    """Every gameweek number that has fixtures, sorted (used to populate the
+    gameweek dropdown on the Fixtures page)."""
+    gws = {f["event"] for f in fixtures if f.get("event") is not None}
+    return sorted(gws)
+
+
+def build_fixtures_for_gw(bootstrap: dict, fixtures: list, gw: int) -> list:
+    """All fixtures for exactly one gameweek, with difficulty ratings."""
     team_lookup = build_team_lookup(bootstrap)
 
-    upcoming = [
-        f for f in fixtures
-        if not f["finished"] and f.get("event") is not None
-        and current_gw <= f["event"] < current_gw + lookahead
-    ]
-    upcoming.sort(key=lambda f: (f["event"], f.get("kickoff_time") or ""))
+    matches = [f for f in fixtures if f.get("event") == gw]
+    matches.sort(key=lambda f: f.get("kickoff_time") or "")
 
     return [
         {
@@ -125,8 +129,10 @@ def build_fixtures_list(bootstrap: dict, fixtures: list, current_gw: int, lookah
             "away": team_lookup.get(f["team_a"], "UNK"),
             "home_difficulty": f["team_h_difficulty"],
             "away_difficulty": f["team_a_difficulty"],
+            "kickoff": f.get("kickoff_time"),
+            "finished": f.get("finished", False),
         }
-        for f in upcoming
+        for f in matches
     ]
 
 

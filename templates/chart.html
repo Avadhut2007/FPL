@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Points Chart — FPL Squad Lab{% endblock %}
+{% block content %}
+
+<header class="page-header">
+  <h1>Points Chart</h1>
+  <p>Visual comparison of top players by predicted or total points this season.</p>
+  <div class="controls">
+    <select id="chart-position" class="select-input">
+      <option value="ALL">All positions</option>
+      <option value="GKP">Goalkeepers</option>
+      <option value="DEF">Defenders</option>
+      <option value="MID">Midfielders</option>
+      <option value="FWD">Forwards</option>
+    </select>
+    <select id="chart-metric" class="select-input">
+      <option value="predicted_points">Predicted Points</option>
+      <option value="total_points">Total Points (season)</option>
+    </select>
+  </div>
+</header>
+
+<main class="page-main-single">
+  <section class="chart-panel">
+    <div class="chart-canvas-wrap">
+      <canvas id="points-chart"></canvas>
+    </div>
+    <p class="table-empty" id="chart-status">Loading chart…</p>
+  </section>
+</main>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/chart-page.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Transfers — FPL Squad Lab{% endblock %}
+{% block content %}
+
+<header class="page-header">
+  <h1>Transfer Suggestions</h1>
+  <p>Enter your FPL Team ID to see your full squad and get optimal transfer suggestions.</p>
+  <div class="controls">
+    <input type="number" id="team-id-input" placeholder="e.g. 1234567">
+    <input type="number" id="free-transfers-input" placeholder="Free transfers" value="1" min="1" max="5" style="max-width:150px">
+    <button id="load-team-btn" class="btn btn-gold">Analyze My Team</button>
+  </div>
+</header>
+
+<main class="page-main-single">
+
+  <section class="team-card" id="team-card" style="display:none;">
+    <div class="team-card-header">
+      <div class="team-card-identity">
+        <h2 id="team-name-display">—</h2>
+        <p class="team-manager" id="manager-name-display">—</p>
+      </div>
+      <div class="team-card-stats">
+        <div class="team-mini-stat"><span class="stat-label">Overall Points</span><span class="stat-value mono" id="team-points">—</span></div>
+        <div class="team-mini-stat"><span class="stat-label">Overall Rank</span><span class="stat-value mono" id="team-rank">—</span></div>
+        <div class="team-mini-stat"><span class="stat-label">In Bank</span><span class="stat-value mono" id="team-bank">—</span></div>
+      </div>
+    </div>
+
+    <div class="pitch fotmob-pitch" id="fotmob-pitch">
+      <div class="pitch-glow"></div>
+      <div class="pitch-center-circle"></div>
+      <div class="pitch-halfway"></div>
+      <div class="pitch-row" id="fm-row-fwd"></div>
+      <div class="pitch-row" id="fm-row-mid"></div>
+      <div class="pitch-row" id="fm-row-def"></div>
+      <div class="pitch-row" id="fm-row-gkp"></div>
+    </div>
+
+    <div class="dugout">
+      <span class="dugout-label">Bench</span>
+      <div class="dugout-row" id="fm-dugout-row"></div>
+    </div>
+  </section>
+
+  <section class="transfers-panel">
+    <div class="panel-header">
+      <h2>Suggested Transfers</h2>
+    </div>
+    <div id="transfers-list" class="transfers-list">
+      <p class="transfers-hint">Enter your Team ID above and click "Analyze My Team".</p>
+    </div>
+  </section>
+
+</main>
+
+{% endblock %}

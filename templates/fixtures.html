@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Fixtures — FPL Squad Lab{% endblock %}
+{% block content %}
+
+<header class="page-header">
+  <h1>Fixtures</h1>
+  <p>Upcoming fixtures for every club, with difficulty ratings (green = easy, red = hard).</p>
+</header>
+
+<main class="page-main-single">
+  <section class="fixtures-panel">
+    <div class="panel-header">
+      <h2>Next Gameweeks</h2>
+      <span class="formation-badge" id="fixtures-gw-tag">—</span>
+    </div>
+    <div class="fixtures-scroll" id="fixtures-scroll">
+      <p class="table-empty">Loading fixtures…</p>
+    </div>
+  </section>
+</main>
+
+{% endblock %}

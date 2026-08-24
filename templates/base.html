@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}FPL Squad Lab{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% block head %}{% endblock %}
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="{{ url_for('index') }}" class="nav-brand">FPL SQUAD<span class="accent">LAB</span></a>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">☰</button>
+  <div class="nav-links" id="nav-links">
+    <a href="{{ url_for('squad_page') }}" class="{{ 'active' if active=='squad' else '' }}">Optimal Squad</a>
+    <a href="{{ url_for('transfers_page') }}" class="{{ 'active' if active=='transfers' else '' }}">Transfers</a>
+    <a href="{{ url_for('chart_page') }}" class="{{ 'active' if active=='chart' else '' }}">Points Chart</a>
+    <a href="{{ url_for('news_page') }}" class="{{ 'active' if active=='news' else '' }}">Player News</a>
+    <a href="{{ url_for('fixtures_page') }}" class="{{ 'active' if active=='fixtures' else '' }}">Fixtures</a>
+    <a href="{{ url_for('history_page') }}" class="{{ 'active' if active=='history' else '' }}">Past Performance</a>
+  </div>
+</nav>
+
+{% block content %}{% endblock %}
+
+<footer class="site-footer">
+  <p>FPL Squad Lab · powered by the official FPL API + linear programming optimization</p>
+  <p class="credit">By – Avadhut Chavan</p>
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

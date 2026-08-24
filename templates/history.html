@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Past Performance — FPL Squad Lab{% endblock %}
+{% block content %}
+
+<header class="page-header">
+  <h1>Past Performance</h1>
+  <p>How this season's top-scoring players performed in previous FPL seasons.</p>
+</header>
+
+<main class="page-main-single">
+  <section class="table-panel">
+    <div class="table-scroll">
+      <table class="player-table" id="history-table">
+        <thead>
+          <tr><th>Player</th><th>Team</th><th>Pos</th><th>This Season</th><th colspan="3">Previous Seasons</th></tr>
+        </thead>
+        <tbody id="history-body">
+          <tr><td colspan="7" class="table-empty">Loading past performance data — this can take a few seconds…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+{% endblock %}

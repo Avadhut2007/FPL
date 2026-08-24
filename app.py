@@ -1,7 +1,7 @@
 """
 FPL Squad Lab — Flask web app.
 Wraps the existing optimizer pipeline (fpl_api, data_processor, predictor,
-optimizer) behind a small JSON API, served with a dark-themed dashboard UI.
+optimizer) behind a small JSON API, served as a multi-page dark-themed site.
 """
 from flask import Flask, jsonify, render_template, request
 
@@ -48,10 +48,44 @@ def player_to_dict(row):
     }
 
 
+# ================= PAGES =================
+
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", active="home")
 
+
+@app.route("/squad")
+def squad_page():
+    return render_template("squad.html", active="squad")
+
+
+@app.route("/transfers")
+def transfers_page():
+    return render_template("transfers.html", active="transfers")
+
+
+@app.route("/chart")
+def chart_page():
+    return render_template("chart.html", active="chart")
+
+
+@app.route("/news")
+def news_page():
+    return render_template("news.html", active="news")
+
+
+@app.route("/fixtures")
+def fixtures_page():
+    return render_template("fixtures.html", active="fixtures")
+
+
+@app.route("/history")
+def history_page():
+    return render_template("history.html", active="history")
+
+
+# ================= API =================
 
 @app.route("/api/squad")
 def api_squad():
@@ -111,14 +145,80 @@ def api_transfers():
 
     try:
         df, gw = get_scored_dataframe()
-        bootstrap = fpl_api.get_bootstrap_data()
         picks_data = fpl_api.get_entry_picks(team_id, max(gw - 1, 1))
         current_ids = [p["element"] for p in picks_data["picks"]]
+
+        # Auto-pick up "money in the bank" from the entry's own history so the
+        # user doesn't have to enter it manually, unless they explicitly did.
+        if not budget_bank:
+            budget_bank = picks_data.get("entry_history", {}).get("bank", 0) / 10.0
 
         suggestions = optimizer.suggest_transfers(
             current_ids, df, free_transfers=free_transfers, budget_bank=budget_bank
         )
         return jsonify({"ok": True, "gameweek": gw, "suggestions": suggestions})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/team/<int:team_id>")
+def api_team(team_id):
+    try:
+        bootstrap = fpl_api.get_bootstrap_data()
+        gw = fpl_api.get_current_gameweek(bootstrap)
+        entry_info = fpl_api.get_entry_info(team_id)
+        picks_data = fpl_api.get_entry_picks(team_id, max(gw - 1, 1))
+        squad = data_processor.build_team_squad(picks_data, bootstrap)
+
+        manager_name = f"{entry_info.get('player_first_name', '')} {entry_info.get('player_last_name', '')}".strip()
+
+        return jsonify({
+            "ok": True,
+            "gameweek": gw,
+            "team_name": entry_info.get("name", "Unknown FC"),
+            "manager_name": manager_name or "Unknown Manager",
+            "overall_points": entry_info.get("summary_overall_points"),
+            "overall_rank": entry_info.get("summary_overall_rank"),
+            "bank": picks_data.get("entry_history", {}).get("bank", 0) / 10.0,
+            "squad": squad,
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/fixtures")
+def api_fixtures():
+    try:
+        bootstrap = fpl_api.get_bootstrap_data()
+        fixtures = fpl_api.get_fixtures()
+        current_gw = fpl_api.get_current_gameweek(bootstrap)
+        items = data_processor.build_fixtures_list(bootstrap, fixtures, current_gw)
+        return jsonify({"ok": True, "gameweek": current_gw, "fixtures": items})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/chart-data")
+def api_chart_data():
+    n = request.args.get("n", default=12, type=int)
+    position = request.args.get("position", default="ALL", type=str)
+    metric = request.args.get("metric", default="predicted_points", type=str)
+
+    try:
+        df, gw = get_scored_dataframe()
+        if position != "ALL":
+            df = df[df["position"] == position]
+
+        sort_col = "total_points" if metric == "total_points" else "predicted_points"
+        top = df.sort_values(sort_col, ascending=False).head(n)
+
+        return jsonify({
+            "ok": True,
+            "gameweek": gw,
+            "labels": top["web_name"].tolist(),
+            "predicted_points": [round(float(x), 2) for x in top["predicted_points"]],
+            "total_points": [int(x) for x in top["total_points"]],
+        })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -129,6 +229,33 @@ def api_news():
         bootstrap = fpl_api.get_bootstrap_data()
         items = data_processor.build_player_news(bootstrap)
         return jsonify({"ok": True, "news": items})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/history")
+def api_history():
+    n = request.args.get("n", default=15, type=int)
+    try:
+        bootstrap = fpl_api.get_bootstrap_data()
+        team_lookup = data_processor.build_team_lookup(bootstrap)
+        top_elements = sorted(bootstrap["elements"], key=lambda p: p["total_points"], reverse=True)[:n]
+
+        result = []
+        for p in top_elements:
+            history = fpl_api.get_player_history(p["id"])
+            past = history.get("history_past", [])[-3:]  # last up to 3 completed seasons
+            result.append({
+                "name": p["web_name"],
+                "team": team_lookup.get(p["team"], "UNK"),
+                "position": data_processor.POSITION_MAP.get(p["element_type"], "UNK"),
+                "current_points": p["total_points"],
+                "seasons": [
+                    {"season": s["season_name"], "points": s["total_points"]}
+                    for s in past
+                ],
+            })
+        return jsonify({"ok": True, "players": result})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

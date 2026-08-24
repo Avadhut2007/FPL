@@ -329,42 +329,131 @@ if (el("fixtures-scroll")) {
 }
 
 // =========================================================
-// PAST PERFORMANCE PAGE
+// PAST PERFORMANCE PAGE (paginated — covers ALL players)
 // =========================================================
 
-async function loadHistory() {
+let historyOffset = 0;
+const HISTORY_PAGE_SIZE = 50;
+let historyAllRows = []; // accumulated {html, name} for client-side search
+
+function historyRowHTML(p) {
+  const seasonCells = [0, 1, 2]
+    .map((i) => {
+      const s = p.seasons[i];
+      return s
+        ? `<td class="mono-cell">${s.season}: ${s.points}</td>`
+        : `<td class="mono-cell table-empty-cell">—</td>`;
+    })
+    .join("");
+  return `
+    <tr>
+      <td>${p.name}</td>
+      <td>${p.team}</td>
+      <td>${p.position}</td>
+      <td class="mono-cell">${p.current_points}</td>
+      ${seasonCells}
+    </tr>`;
+}
+
+function renderHistoryRows() {
   const tbody = el("history-body");
+  const query = (el("history-search")?.value || "").toLowerCase().trim();
+  const visible = query
+    ? historyAllRows.filter((r) => r.name.toLowerCase().includes(query))
+    : historyAllRows;
+
+  tbody.innerHTML = visible.length
+    ? visible.map((r) => r.html).join("")
+    : `<tr><td colspan="7" class="table-empty">No players match "${query}".</td></tr>`;
+}
+
+async function loadHistoryPage() {
+  const btn = el("load-more-btn");
+  const status = el("history-status");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Loading…";
+  }
+
   try {
-    const data = await fetchJSON("/api/history?n=15");
-    if (data.players.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="table-empty">No history data found.</td></tr>`;
-      return;
+    const data = await fetchJSON(`/api/history?offset=${historyOffset}&limit=${HISTORY_PAGE_SIZE}`);
+    data.players.forEach((p) => historyAllRows.push({ name: p.name, html: historyRowHTML(p) }));
+    historyOffset += data.limit;
+
+    renderHistoryRows();
+
+    status.textContent = `Showing ${historyAllRows.length} of ${data.total} players`;
+    if (!data.has_more) {
+      btn.style.display = "none";
+      status.textContent += " — that's everyone.";
     }
-    tbody.innerHTML = data.players
-      .map((p) => {
-        const seasonCells = [0, 1, 2]
-          .map((i) => {
-            const s = p.seasons[i];
-            return s
-              ? `<td class="mono-cell">${s.season}: ${s.points}</td>`
-              : `<td class="mono-cell table-empty-cell">—</td>`;
-          })
-          .join("");
-        return `
-        <tr>
-          <td>${p.name}</td>
-          <td>${p.team}</td>
-          <td>${p.position}</td>
-          <td class="mono-cell">${p.current_points}</td>
-          ${seasonCells}
-        </tr>`;
-      })
-      .join("");
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Error: ${e.message}</td></tr>`;
+    status.textContent = `Error: ${e.message}`;
+  } finally {
+    if (btn && btn.style.display !== "none") {
+      btn.disabled = false;
+      btn.textContent = "Load More Players";
+    }
   }
 }
 
 if (el("history-body")) {
-  loadHistory();
+  loadHistoryPage(); // first page on load
+  el("load-more-btn").addEventListener("click", loadHistoryPage);
+  el("history-search").addEventListener("input", renderHistoryRows);
+}
+
+// =========================================================
+// CHART PAGE (Chart.js bar chart: predicted vs total points)
+// =========================================================
+
+let pointsChart = null;
+
+async function loadChartData() {
+  const n = parseInt(el("chart-n-input")?.value) || 12;
+  const position = el("chart-position-select")?.value || "ALL";
+  const metric = el("chart-metric-select")?.value || "predicted_points";
+
+  try {
+    const data = await fetchJSON(`/api/chart-data?n=${n}&position=${position}&metric=${metric}`);
+    el("chart-gw-tag").textContent = `Gameweek ${data.gameweek}`;
+
+    const ctx = el("points-chart").getContext("2d");
+    const values = metric === "total_points" ? data.total_points : data.predicted_points;
+    const label = metric === "total_points" ? "Total points (season)" : "Predicted points (next GW)";
+
+    if (pointsChart) pointsChart.destroy();
+    pointsChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: data.labels,
+        datasets: [
+          {
+            label,
+            data: values,
+            backgroundColor: "#C9A227",
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: "#8A9A93" }, grid: { color: "rgba(255,255,255,0.06)" } },
+          y: { ticks: { color: "#8A9A93" }, grid: { color: "rgba(255,255,255,0.06)" } },
+        },
+        plugins: { legend: { labels: { color: "#ECEDEA" } } },
+      },
+    });
+  } catch (e) {
+    el("chart-gw-tag").textContent = `Error: ${e.message}`;
+  }
+}
+
+if (el("points-chart")) {
+  loadChartData();
+  el("chart-refresh-btn").addEventListener("click", loadChartData);
+  el("chart-position-select").addEventListener("change", loadChartData);
+  el("chart-metric-select").addEventListener("change", loadChartData);
 }

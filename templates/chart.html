@@ -1,23 +1,28 @@
 {% extends "base.html" %}
-{% block title %}Points Chart — FPL Squad Lab{% endblock %}
+{% block title %}Charts — FPL Squad Lab{% endblock %}
 {% block content %}
 
 <header class="page-header">
-  <h1>Points Chart</h1>
-  <p>Visual comparison of top players by predicted or total points this season.</p>
+  <h1>Charts</h1>
+  <p>Compare predicted points against season-long total points for the top players.</p>
   <div class="controls">
-    <select id="chart-position" class="select-input">
+    <label class="budget-label">Show top
+      <input type="number" id="chart-n-input" value="12" min="5" max="30">
+    </label>
+    <select class="select-input" id="chart-position-select">
       <option value="ALL">All positions</option>
       <option value="GKP">Goalkeepers</option>
       <option value="DEF">Defenders</option>
       <option value="MID">Midfielders</option>
       <option value="FWD">Forwards</option>
     </select>
-    <select id="chart-metric" class="select-input">
-      <option value="predicted_points">Predicted Points</option>
-      <option value="total_points">Total Points (season)</option>
+    <select class="select-input" id="chart-metric-select">
+      <option value="predicted_points">Predicted points (next GW)</option>
+      <option value="total_points">Total points (season)</option>
     </select>
+    <button class="btn btn-gold" id="chart-refresh-btn">Refresh</button>
   </div>
+  <p class="gw-tag" id="chart-gw-tag"></p>
 </header>
 
 <main class="page-main-single">
@@ -25,13 +30,10 @@
     <div class="chart-canvas-wrap">
       <canvas id="points-chart"></canvas>
     </div>
-    <p class="table-empty" id="chart-status">Loading chart…</p>
   </section>
 </main>
 
 {% endblock %}
-
 {% block scripts %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="{{ url_for('static', filename='js/chart-page.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 {% endblock %}

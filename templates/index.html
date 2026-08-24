@@ -1,134 +1,53 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FPL Squad Lab</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}FPL Squad Lab{% endblock %}
+{% block content %}
 
 <header class="hero">
   <div class="hero-stripes"></div>
   <div class="hero-content">
     <h1 class="wordmark">FPL SQUAD<span class="accent">LAB</span></h1>
-    <p class="tagline">Data-driven Fantasy Premier League team selection — built on live prices, form, fixtures and linear programming, not gut feel.</p>
+    <p class="tagline">Data-driven Fantasy Premier League tools — built on live prices, form, fixtures and linear programming, not gut feel.</p>
   </div>
 </header>
 
-<main class="dashboard">
+<main class="home-grid">
 
-  <section class="transfers-panel">
-    <div class="panel-header">
-      <h2>Transfer Suggestions</h2>
-    </div>
-    <p class="transfers-hint">Enter your FPL Team ID (found in your team's URL on the official site) to get upgrade suggestions.</p>
-    <div class="controls">
-      <input type="number" id="team-id-input" placeholder="e.g. 1234567">
-      <input type="number" id="free-transfers-input" placeholder="Free transfers" value="1" min="1" max="5" style="max-width:140px">
-      <button id="transfers-btn" class="btn btn-gold">Check Transfers</button>
-    </div>
-    <div id="transfers-list" class="transfers-list"></div>
-  </section>
+  <a href="{{ url_for('transfers_page') }}" class="nav-card">
+    <span class="nav-card-icon">⇄</span>
+    <h2>Transfer Suggestions</h2>
+    <p>Enter your Team ID to see your full squad and get optimal transfer suggestions.</p>
+  </a>
 
-  <section class="news-panel">
-    <div class="panel-header">
-      <h2>Player News</h2>
-    </div>
-    <div id="news-list" class="news-list">
-      <p class="table-empty">Loading player news…</p>
-    </div>
-  </section>
+  <a href="{{ url_for('squad_page') }}" class="nav-card">
+    <span class="nav-card-icon">⚽</span>
+    <h2>Optimal Squad</h2>
+    <p>Build the mathematically best 15-man squad within any budget.</p>
+  </a>
 
-  <section class="generator-panel">
-    <div class="panel-header">
-      <h2>Squad Generator</h2>
-    </div>
-    <div class="controls">
-      <label class="budget-label">
-        Budget (£m)
-        <input type="number" id="budget-input" value="100.0" step="0.5" min="80" max="100">
-      </label>
-      <button id="generate-btn" class="btn btn-gold">Generate Optimal Squad</button>
-      <button id="refresh-btn" class="btn btn-ghost" title="Force re-fetch live data">↻ Refresh data</button>
-    </div>
-    <p class="gw-tag" id="gw-tag"></p>
-  </section>
+  <a href="{{ url_for('chart_page') }}" class="nav-card">
+    <span class="nav-card-icon">📊</span>
+    <h2>Points Chart</h2>
+    <p>Visual breakdown of top players by predicted and total points.</p>
+  </a>
 
-  <section class="table-panel">
-    <div class="panel-header">
-      <h2>Top Rated Players</h2>
-      <div class="pos-tabs" id="pos-tabs">
-        <button class="pos-tab active" data-pos="ALL">ALL</button>
-        <button class="pos-tab" data-pos="GKP">GKP</button>
-        <button class="pos-tab" data-pos="DEF">DEF</button>
-        <button class="pos-tab" data-pos="MID">MID</button>
-        <button class="pos-tab" data-pos="FWD">FWD</button>
-      </div>
-    </div>
-    <div class="table-scroll">
-      <table class="player-table">
-        <thead>
-          <tr><th>Player</th><th>Team</th><th>Pos</th><th>Price</th><th>Form</th><th>Pred. Pts</th><th>Value</th></tr>
-        </thead>
-        <tbody id="table-body">
-          <tr><td colspan="7" class="table-empty">Loading top players…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+  <a href="{{ url_for('news_page') }}" class="nav-card">
+    <span class="nav-card-icon">📰</span>
+    <h2>Player News</h2>
+    <p>Live injury, suspension, and availability updates — auto-refreshing.</p>
+  </a>
 
-  <section class="pitch-panel" id="pitch-panel">
-    <div class="panel-header">
-      <h2>Starting XI</h2>
-      <span class="formation-badge" id="formation-badge">—</span>
-    </div>
+  <a href="{{ url_for('fixtures_page') }}" class="nav-card">
+    <span class="nav-card-icon">📅</span>
+    <h2>Fixtures</h2>
+    <p>Upcoming fixtures for every club with difficulty ratings.</p>
+  </a>
 
-    <div class="pitch" id="pitch">
-      <div class="pitch-center-circle"></div>
-      <div class="pitch-halfway"></div>
-      <div class="pitch-row" data-pos="FWD" id="row-fwd"></div>
-      <div class="pitch-row" data-pos="MID" id="row-mid"></div>
-      <div class="pitch-row" data-pos="DEF" id="row-def"></div>
-      <div class="pitch-row" data-pos="GKP" id="row-gkp"></div>
-      <p class="pitch-placeholder" id="pitch-placeholder">Click "Generate Optimal Squad" to build your team</p>
-    </div>
-
-    <div class="dugout">
-      <span class="dugout-label">Bench</span>
-      <div class="dugout-row" id="dugout-row"></div>
-    </div>
-  </section>
-
-  <aside class="stats-panel">
-    <div class="stat-card">
-      <span class="stat-label">Projected Points</span>
-      <span class="stat-value mono" id="stat-points">—</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-label">Budget Used</span>
-      <span class="stat-value mono" id="stat-budget">—</span>
-      <div class="budget-bar"><div class="budget-bar-fill" id="budget-bar-fill"></div></div>
-    </div>
-    <div class="stat-card">
-      <span class="stat-label">Captain</span>
-      <span class="stat-value" id="stat-captain">—</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-label">Vice-Captain</span>
-      <span class="stat-value" id="stat-vice">—</span>
-    </div>
-  </aside>
+  <a href="{{ url_for('history_page') }}" class="nav-card">
+    <span class="nav-card-icon">🏆</span>
+    <h2>Past Performance</h2>
+    <p>How top players scored across previous FPL seasons.</p>
+  </a>
 
 </main>
 
-<footer class="site-footer">
-  <p>FPL Squad Lab · powered by the official FPL API + linear programming optimization</p>
-  <p class="credit">By – Avadhut Chavan</p>
-</footer>
-
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
-</body>
-</html>
+{% endblock %}

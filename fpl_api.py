@@ -79,6 +79,12 @@ def get_entry_picks(team_id: int, gw: int, force_refresh: bool = False) -> dict:
     return _get(url, cache_name=f"entry_{team_id}_{gw}", force_refresh=force_refresh)
 
 
+def get_entry_info(team_id: int, force_refresh: bool = False) -> dict:
+    """Team name, manager name, and overall rank/points for a given FPL team ID."""
+    url = config.ENTRY_URL.format(team_id=team_id)
+    return _get(url, cache_name=f"entry_info_{team_id}", force_refresh=force_refresh)
+
+
 def get_current_gameweek(bootstrap: dict) -> int:
     """Find the next unfinished gameweek from the events list."""
     for event in bootstrap["events"]:

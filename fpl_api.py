@@ -87,3 +87,12 @@ def get_current_gameweek(bootstrap: dict) -> int:
         if not event.get("finished"):
             return event["id"]
     return bootstrap["events"][-1]["id"]
+
+
+def get_next_deadline(bootstrap: dict) -> dict:
+    """The next unfinished gameweek's deadline, for the Deadline Reminder widget."""
+    for event in bootstrap["events"]:
+        if event.get("is_next") or not event.get("finished"):
+            return {"gameweek": event["id"], "name": event["name"], "deadline_time": event["deadline_time"]}
+    last = bootstrap["events"][-1]
+    return {"gameweek": last["id"], "name": last["name"], "deadline_time": last["deadline_time"]}

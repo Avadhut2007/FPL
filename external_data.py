@@ -4,8 +4,12 @@ hit entirely different services (ESPN's public soccer API, BBC's RSS feed).
 Neither requires an API key. Both fail soft: if the upstream service is down
 or its shape changes, callers get an empty list/dict back rather than a 500.
 """
+import json
+import os
 import re
+import time
 import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta
 
 import requests
 
@@ -16,7 +20,59 @@ HEADERS = {
                   "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.espn.com/",
 }
+
+
+def _cache_path(name: str) -> str:
+    os.makedirs(config.CACHE_DIR, exist_ok=True)
+    return os.path.join(config.CACHE_DIR, f"{name}.json")
+
+
+def _read_cache(name: str, ttl_seconds: int):
+    path = _cache_path(name)
+    if not os.path.exists(path):
+        return None
+    age = datetime.now() - datetime.fromtimestamp(os.path.getmtime(path))
+    if age > timedelta(seconds=ttl_seconds):
+        return None
+    with open(path, "r") as f:
+        return json.load(f)
+
+
+def _write_cache(name: str, data):
+    try:
+        with open(_cache_path(name), "w") as f:
+            json.dump(data, f)
+    except OSError:
+        pass
+
+
+def _get_json(url: str, cache_name: str, cache_ttl_seconds: int, retries: int = 2, timeout: int = 8):
+    """
+    Small, fast retry + short-TTL cache around a single JSON GET. Live
+    scores/standings are real-time-ish but don't need a fresh network hit
+    on every single page view — caching briefly means a transient block or
+    slow response on one request doesn't leave the page empty for the next
+    visitor too, and cuts down how often we hit ESPN's unofficial API.
+    """
+    cached = _read_cache(cache_name, cache_ttl_seconds)
+    if cached is not None:
+        return cached
+
+    last_err = None
+    for attempt in range(retries):
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            _write_cache(cache_name, data)
+            return data
+        except Exception as e:
+            last_err = e
+            if attempt < retries - 1:
+                time.sleep(1)
+    raise RuntimeError(f"Failed to fetch {url}: {last_err}")
 
 
 def get_live_scores(date_from: str = None, date_to: str = None) -> list:
@@ -31,10 +87,9 @@ def get_live_scores(date_from: str = None, date_to: str = None) -> list:
     if date_from and date_to:
         url = f"{url}?dates={date_from}-{date_to}"
 
+    cache_name = f"live_scores_{date_from or 'today'}_{date_to or 'today'}"
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
+        data = _get_json(url, cache_name=cache_name, cache_ttl_seconds=60)
     except Exception:
         return []
 
@@ -69,9 +124,7 @@ def get_live_scores(date_from: str = None, date_to: str = None) -> list:
 def get_league_table() -> list:
     """Current Premier League standings from ESPN's public API."""
     try:
-        resp = requests.get(config.ESPN_STANDINGS_URL, headers=HEADERS, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
+        data = _get_json(config.ESPN_STANDINGS_URL, cache_name="standings", cache_ttl_seconds=300)
     except Exception:
         return []
 

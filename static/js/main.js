@@ -7,11 +7,17 @@
 
 const el = (id) => document.getElementById(id);
 
-async function fetchJSON(url) {
-  const res = await fetch(url);
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || "Request failed");
-  return data;
+async function fetchJSON(url, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "Request failed");
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function crestImg(url, cls) {

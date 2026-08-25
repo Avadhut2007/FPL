@@ -5,7 +5,7 @@ Handles caching so you don't hammer the endpoint every time you run the app.
 import json
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -90,9 +90,19 @@ def get_current_gameweek(bootstrap: dict) -> int:
 
 
 def get_next_deadline(bootstrap: dict) -> dict:
-    """The next unfinished gameweek's deadline, for the Deadline Reminder widget."""
+    """
+    The next gameweek deadline that hasn't passed yet, for the Deadline
+    Reminder widget. Deliberately does NOT use "is_next"/"finished" — a
+    gameweek stays "not finished" for a while after its own deadline (while
+    matches are still being played and bonus points processed), so that
+    flag alone would keep showing a deadline that's already in the past.
+    Instead this picks the first gameweek whose deadline_time is still in
+    the future relative to right now.
+    """
+    now = datetime.now(timezone.utc)
     for event in bootstrap["events"]:
-        if event.get("is_next") or not event.get("finished"):
+        deadline = datetime.fromisoformat(event["deadline_time"].replace("Z", "+00:00"))
+        if deadline > now:
             return {"gameweek": event["id"], "name": event["name"], "deadline_time": event["deadline_time"]}
     last = bootstrap["events"][-1]
     return {"gameweek": last["id"], "name": last["name"], "deadline_time": last["deadline_time"]}

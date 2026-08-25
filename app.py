@@ -1,7 +1,8 @@
 """
 FPL Squad Lab — Flask web app.
 Wraps the existing optimizer pipeline (fpl_api, data_processor, predictor,
-optimizer) behind a small JSON API, served as a multi-page dark-themed site.
+optimizer) plus external_data (ESPN scores/standings, BBC transfer news)
+behind a small JSON API, served as a multi-page dark-themed site.
 """
 import os
 import stat
@@ -11,6 +12,7 @@ import concurrent.futures
 
 import config
 import data_processor
+import external_data
 import fpl_api
 import optimizer
 import predictor
@@ -71,6 +73,8 @@ def player_to_dict(row):
         "id": int(row["id"]),
         "name": row["web_name"],
         "team": row["team"],
+        "team_crest": row.get("team_crest", ""),
+        "photo": row.get("photo", ""),
         "position": row["position"],
         "price": round(float(row["price"]), 1),
         "predicted_points": round(float(row["predicted_points"]), 2),
@@ -116,6 +120,16 @@ def history_page():
     return render_template("history.html", active="history")
 
 
+@app.route("/live-scores")
+def live_scores_page():
+    return render_template("live_scores.html", active="live-scores")
+
+
+@app.route("/transfer-news")
+def transfer_news_page():
+    return render_template("transfer_news.html", active="transfer-news")
+
+
 # ================= API =================
 
 @app.route("/api/squad")
@@ -148,7 +162,7 @@ def api_squad():
 
 @app.route("/api/top")
 def api_top():
-    n = request.args.get("n", default=20, type=int)
+    n = request.args.get("n", default=30, type=int)
     position = request.args.get("position", default=None, type=str)
 
     try:
@@ -161,6 +175,18 @@ def api_top():
             "gameweek": gw,
             "players": [player_to_dict(r) for _, r in top.iterrows()],
         })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/player-history/<int:player_id>")
+def api_player_history(player_id):
+    """This-season gameweek-by-gameweek points for one player, for the
+    Player Explorer's click-to-expand chart."""
+    try:
+        history_data = fpl_api.get_player_history(player_id)
+        gw_history = data_processor.build_player_gw_history(history_data)
+        return jsonify({"ok": True, "history": gw_history})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -179,15 +205,51 @@ def api_transfers():
         picks_data = fpl_api.get_entry_picks(team_id, max(gw - 1, 1))
         current_ids = [p["element"] for p in picks_data["picks"]]
 
-        # Auto-pick up "money in the bank" from the entry's own history so the
-        # user doesn't have to enter it manually, unless they explicitly did.
         if not budget_bank:
             budget_bank = picks_data.get("entry_history", {}).get("bank", 0) / 10.0
 
         suggestions = optimizer.suggest_transfers(
             current_ids, df, free_transfers=free_transfers, budget_bank=budget_bank,
+            history_fetcher=fpl_api.get_player_history,
         )
         return jsonify({"ok": True, "gameweek": gw, "suggestions": suggestions})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/injury-tracker/<int:team_id>")
+def api_injury_tracker(team_id):
+    """
+    For every injured/doubtful/suspended player in this manager's squad,
+    suggest a replacement — reusing optimizer.suggest_transfers exactly as-is
+    (via target_ids), no separate scoring logic.
+    """
+    try:
+        df, gw = get_scored_dataframe()
+        bootstrap = fpl_api.get_bootstrap_data()
+        picks_data = fpl_api.get_entry_picks(team_id, max(gw - 1, 1))
+        squad = data_processor.build_team_squad(picks_data, bootstrap)
+
+        flagged = [p for p in squad if p["status"] != "a"]
+        if not flagged:
+            return jsonify({"ok": True, "gameweek": gw, "flagged_players": [], "suggestions": []})
+
+        current_ids = [p["id"] for p in squad]
+        target_ids = [p["id"] for p in flagged]
+        budget_bank = picks_data.get("entry_history", {}).get("bank", 0) / 10.0
+
+        suggestions = optimizer.suggest_transfers(
+            current_ids, df, budget_bank=budget_bank,
+            history_fetcher=fpl_api.get_player_history,
+            target_ids=target_ids,
+        )
+
+        return jsonify({
+            "ok": True,
+            "gameweek": gw,
+            "flagged_players": flagged,
+            "suggestions": suggestions,
+        })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -217,26 +279,28 @@ def api_team(team_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/deadline")
+def api_deadline():
+    """Next gameweek deadline, for the Deadline Reminder widget's countdown
+    and "Add to Google Calendar" button."""
+    try:
+        bootstrap = fpl_api.get_bootstrap_data()
+        deadline = fpl_api.get_next_deadline(bootstrap)
+        return jsonify({"ok": True, **deadline})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/fixtures")
 def api_fixtures():
+    """Team x gameweek FDR grid for the Fixtures page."""
+    lookahead = request.args.get("lookahead", default=5, type=int)
     try:
         bootstrap = fpl_api.get_bootstrap_data()
         fixtures = fpl_api.get_fixtures()
         current_gw = fpl_api.get_current_gameweek(bootstrap)
-        available_gameweeks = data_processor.get_available_gameweeks(bootstrap)
-
-        gw = request.args.get("gw", default=current_gw, type=int)
-        if gw not in available_gameweeks:
-            gw = current_gw
-
-        items = data_processor.build_fixtures_for_gw(bootstrap, fixtures, gw)
-        return jsonify({
-            "ok": True,
-            "gameweek": gw,
-            "current_gameweek": current_gw,
-            "available_gameweeks": available_gameweeks,
-            "fixtures": items,
-        })
+        grid = data_processor.build_fdr_grid(bootstrap, fixtures, current_gw, lookahead=lookahead)
+        return jsonify({"ok": True, "current_gameweek": current_gw, **grid})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -323,6 +387,24 @@ def api_history():
         })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/live-scores")
+def api_live_scores():
+    games = external_data.get_live_scores()
+    return jsonify({"ok": True, "games": games})
+
+
+@app.route("/api/standings")
+def api_standings():
+    table = external_data.get_league_table()
+    return jsonify({"ok": True, "table": table})
+
+
+@app.route("/api/transfer-news")
+def api_transfer_news():
+    news = external_data.get_transfer_news(limit=25)
+    return jsonify({"ok": True, "news": news})
 
 
 if __name__ == "__main__":

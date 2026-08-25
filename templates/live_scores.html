@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Live Scores — FPL Squad Lab{% endblock %}
+{% block content %}
+
+<header class="page-header">
+  <h1>Live Scores & Table</h1>
+  <p>Premier League scores and standings, from ESPN's public data feed.</p>
+</header>
+
+<main class="page-main-single">
+
+  <section class="live-scores-panel">
+    <div class="panel-header"><h2>Today's Games</h2></div>
+    <div id="live-scores-list">
+      <p class="table-empty">Loading scores…</p>
+    </div>
+  </section>
+
+  <section class="table-panel">
+    <div class="panel-header"><h2>League Table</h2></div>
+    <div class="table-scroll">
+      <table class="player-table" id="standings-table">
+        <thead>
+          <tr><th>#</th><th></th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr>
+        </thead>
+        <tbody id="standings-body">
+          <tr><td colspan="9" class="table-empty">Loading table…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+{% endblock %}

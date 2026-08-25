@@ -11,14 +11,28 @@ import requests
 
 import config
 
-HEADERS = {"User-Agent": "Mozilla/5.0 (FPL-Squad-Lab/1.0)"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+}
 
 
-def get_live_scores() -> list:
-    """Today's Premier League fixtures + live scores from ESPN's public
-    (unofficial, no-key) soccer API."""
+def get_live_scores(date_from: str = None, date_to: str = None) -> list:
+    """
+    Premier League fixtures + scores from ESPN's public (unofficial, no-key)
+    soccer API. With no arguments, returns today's games. Pass date_from/
+    date_to as 'YYYYMMDD' to cover a range instead — used by the Live
+    Scores page to show every match in the current FPL gameweek, not just
+    today's.
+    """
+    url = config.ESPN_SCOREBOARD_URL
+    if date_from and date_to:
+        url = f"{url}?dates={date_from}-{date_to}"
+
     try:
-        resp = requests.get(config.ESPN_SCOREBOARD_URL, headers=HEADERS, timeout=10)
+        resp = requests.get(url, headers=HEADERS, timeout=10)
         resp.raise_for_status()
         data = resp.json()
     except Exception:
@@ -34,6 +48,7 @@ def get_live_scores() -> list:
             status = event["status"]["type"]
 
             games.append({
+                "date": event.get("date", ""),
                 "home_team": home["team"]["displayName"],
                 "home_crest": home["team"].get("logo"),
                 "home_score": home.get("score", "0"),
@@ -47,6 +62,7 @@ def get_live_scores() -> list:
         except (KeyError, IndexError, StopIteration):
             continue
 
+    games.sort(key=lambda g: g["date"])
     return games
 
 

@@ -1,0 +1,272 @@
+/* =========================================================
+   FPL SQUAD LAB
+   HOME PAGE / THEME TOGGLE FIX
+   ========================================================= */
+
+
+/* =========================================================
+   THEME TOGGLE BUTTON
+   ========================================================= */
+
+.theme-toggle {
+    position: relative;
+
+    width: 36px;
+    height: 36px;
+
+    min-width: 36px;
+    min-height: 36px;
+
+    max-width: 36px;
+    max-height: 36px;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    display: inline-flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    box-sizing: border-box !important;
+
+    overflow: hidden !important;
+
+    flex: 0 0 36px;
+
+    border-radius: 8px !important;
+
+    font-size: 0 !important;
+    line-height: 0 !important;
+
+    vertical-align: middle;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        border-color 0.2s ease,
+        background 0.2s ease;
+}
+
+
+/* =========================================================
+   REMOVE THE ORIGINAL EMOJI
+   ========================================================= */
+
+/*
+   main.js puts 🌙 / ☀️ inside the button.
+
+   We hide the text completely and create our own
+   icon using CSS.
+*/
+
+.theme-toggle {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+
+/* =========================================================
+   DARK MODE — CRESCENT MOON
+   ========================================================= */
+
+.theme-toggle::before {
+    content: "";
+
+    position: absolute;
+
+    width: 17px;
+    height: 17px;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-40%, -50%);
+
+    border-radius: 50%;
+
+    background: #FFD21F;
+
+    pointer-events: none;
+
+    z-index: 2;
+}
+
+
+/* =========================================================
+   DARK MODE — MOON CUTOUT
+   ========================================================= */
+
+.theme-toggle::after {
+    content: "";
+
+    position: absolute;
+
+    width: 17px;
+    height: 17px;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-64%, -69%);
+
+    border-radius: 50%;
+
+    background: var(--panel-2);
+
+    pointer-events: none;
+
+    z-index: 3;
+}
+
+
+/* =========================================================
+   LIGHT MODE — SUN
+   ========================================================= */
+
+[data-theme="light"] .theme-toggle::before {
+    content: "";
+
+    position: absolute;
+
+    width: 14px;
+    height: 14px;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    border-radius: 50%;
+
+    background: #D89B00;
+
+    box-shadow:
+        0 -7px 0 -5px #D89B00,
+        0 7px 0 -5px #D89B00,
+        7px 0 0 -5px #D89B00,
+        -7px 0 0 -5px #D89B00,
+        5px 5px 0 -5px #D89B00,
+        -5px -5px 0 -5px #D89B00,
+        5px -5px 0 -5px #D89B00,
+        -5px 5px 0 -5px #D89B00;
+
+    z-index: 2;
+}
+
+
+/* =========================================================
+   LIGHT MODE — REMOVE MOON CUTOUT
+   ========================================================= */
+
+[data-theme="light"] .theme-toggle::after {
+    display: none;
+}
+
+
+/* =========================================================
+   HOVER
+   ========================================================= */
+
+.theme-toggle:hover {
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   ACTIVE / CLICK
+   ========================================================= */
+
+.theme-toggle:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================================
+   FOCUS
+   ========================================================= */
+
+.theme-toggle:focus {
+    outline: none;
+}
+
+
+.theme-toggle:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 639px) {
+
+    .theme-toggle {
+        width: 36px;
+        height: 36px;
+
+        min-width: 36px;
+        min-height: 36px;
+
+        max-width: 36px;
+        max-height: 36px;
+
+        flex-basis: 36px;
+
+        border-radius: 8px !important;
+    }
+
+}
+
+
+/* =========================================================
+   SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 380px) {
+
+    .theme-toggle {
+        width: 34px;
+        height: 34px;
+
+        min-width: 34px;
+        min-height: 34px;
+
+        max-width: 34px;
+        max-height: 34px;
+
+        flex-basis: 34px;
+    }
+
+
+    .theme-toggle::before {
+        width: 16px;
+        height: 16px;
+    }
+
+
+    .theme-toggle::after {
+        width: 16px;
+        height: 16px;
+    }
+
+
+    [data-theme="light"] .theme-toggle::before {
+        width: 13px;
+        height: 13px;
+
+        box-shadow:
+            0 -6px 0 -5px #D89B00,
+            0 6px 0 -5px #D89B00,
+            6px 0 0 -5px #D89B00,
+            -6px 0 0 -5px #D89B00,
+            4px 4px 0 -5px #D89B00,
+            -4px -4px 0 -5px #D89B00,
+            4px -4px 0 -5px #D89B00,
+            -4px 4px 0 -5px #D89B00;
+    }
+
+}

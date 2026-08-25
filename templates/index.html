@@ -1,35 +1,201 @@
 {% extends "base.html" %}
 {% block title %}FPL Squad Lab{% endblock %}
+
 {% block content %}
 
-<header class="hero-compact">
-  <h1 class="wordmark">FPL <span class="accent">Squad Lab</span></h1>
-  <p class="tagline">Data-driven Fantasy Premier League tools — live prices, form, and fixtures, not gut feel.</p>
-</header>
+<section class="home-hero">
+  <div class="home-hero-copy">
+    <span class="home-kicker">Fantasy Premier League Analytics</span>
 
-<section class="deadline-banner" id="deadline-banner">
-  <div class="deadline-info">
-    <span class="deadline-label" id="deadline-label">Next Deadline</span>
-    <span class="deadline-countdown" id="deadline-countdown">Loading…</span>
+    <h1 class="wordmark">
+      FPL <span class="accent">Squad Lab</span>
+    </h1>
+
+    <p class="tagline">
+      Data-driven Fantasy Premier League tools — live prices, form, and fixtures, not gut feel.
+    </p>
   </div>
-  <button class="btn btn-ghost btn-small" id="deadline-calendar-btn">📅 Add to Calendar</button>
 </section>
 
-<main class="home-grid-compact">
-  <a href="/transfers" class="nav-card-compact"><span>🔁</span><div><h2>Transfers</h2><p>Team view + suggestions</p></div></a>
-  <a href="/squad" class="nav-card-compact"><span>⚽</span><div><h2>Squad Builder</h2><p>Optimal 15-man squad</p></div></a>
-  <a href="/chart" class="nav-card-compact"><span>📊</span><div><h2>Points Chart</h2><p>Visual comparisons</p></div></a>
-  <a href="/news" class="nav-card-compact"><span>📰</span><div><h2>Player News</h2><p>Injuries & availability</p></div></a>
-  <a href="/fixtures" class="nav-card-compact"><span>🗓️</span><div><h2>Fixtures</h2><p>FDR difficulty grid</p></div></a>
-  <a href="/history" class="nav-card-compact"><span>📈</span><div><h2>Past Performance</h2><p>Previous seasons</p></div></a>
-  <a href="/live-scores" class="nav-card-compact"><span>⏱️</span><div><h2>Live Scores</h2><p>PL scores & table</p></div></a>
-  <a href="/transfer-news" class="nav-card-compact"><span>🗞️</span><div><h2>Transfer News</h2><p>Real transfer headlines</p></div></a>
+
+<section class="deadline-banner" id="deadline-banner">
+
+  <div class="deadline-info">
+    <span class="deadline-label" id="deadline-label">
+      Next Deadline
+    </span>
+
+    <span class="deadline-countdown" id="deadline-countdown">
+      Loading…
+    </span>
+  </div>
+
+  <button
+    class="btn btn-ghost btn-small"
+    id="deadline-calendar-btn"
+  >
+    📅 Add to Calendar
+  </button>
+
+</section>
+
+
+<main class="home-main">
+
+  <div class="home-section-heading">
+
+    <div>
+      <span class="home-section-kicker">
+        Explore the lab
+      </span>
+
+      <h2>
+        Everything you need for your FPL team
+      </h2>
+    </div>
+
+    <span class="home-section-count">
+      8 TOOLS
+    </span>
+
+  </div>
+
+
+  <section
+    class="home-grid-compact"
+    aria-label="FPL Squad Lab tools"
+  >
+
+    <a
+      href="/transfers"
+      class="nav-card-compact"
+    >
+      <span class="nav-card-icon">🔁</span>
+
+      <div>
+        <h2>Transfers</h2>
+        <p>Team view + suggestions</p>
+      </div>
+
+      <span class="nav-card-arrow">→</span>
+    </a>
+
+
+    <a
+      href="/squad"
+      class="nav-card-compact"
+    >
+      <span class="nav-card-icon">⚽</span>
+
+      <div>
+        <h2>Squad Builder</h2>
+        <p>Optimal 15-man squad</p>
+      </div>
+
+      <span class="nav-card-arrow">→</span>
+    </a>
+
+
+    <a
+      href="/chart"
+      class="nav-card-compact"
+    >
+      <span class="nav-card-icon">📊</span>
+
+      <div>
+        <h2>Points Chart</h2>
+        <p>Visual comparisons</p>
+      </div>
+
+      <span class="nav-card-arrow">→</span>
+    </a>
+
+
+    <a
+      href="/news"
+      class="nav-card-compact"
+    >
+      <span class="nav-card-icon">📰</span>
+
+      <div>
+        <h2>Player News</h2>
+        <p>Injuries & availability</p>
+      </div>
+
+      <span class="nav-card-arrow">→</span>
+    </a>
+
+
+    <a
+      href="/fixtures"
+      class="nav-card-compact"
+    >
+      <span class="nav-card-icon">🗓️</span>
+
+      <div>
+        <h2>Fixtures</h2>
+        <p>FDR difficulty grid</p>
+      </div>
+
+      <span class="nav-card-arrow">→</span>
+    </a>
+
+
+    <a
+      href="/history"
+      class="nav-card-compact"
+    >
+      <span class="nav-card-icon">📈</span>
+
+      <div>
+        <h2>Past Performance</h2>
+        <p>Previous seasons</p>
+      </div>
+
+      <span class="nav-card-arrow">→</span>
+    </a>
+
+
+    <a
+      href="/live-scores"
+      class="nav-card-compact featured-card"
+    >
+      <span class="nav-card-icon">⏱️</span>
+
+      <div>
+        <h2>Live Scores</h2>
+        <p>PL scores & table</p>
+      </div>
+
+      <span class="nav-card-arrow">→</span>
+    </a>
+
+
+    <a
+      href="/transfer-news"
+      class="nav-card-compact"
+    >
+      <span class="nav-card-icon">🗞️</span>
+
+      <div>
+        <h2>Transfer News</h2>
+        <p>Real transfer headlines</p>
+      </div>
+
+      <span class="nav-card-arrow">→</span>
+    </a>
+
+  </section>
+
 </main>
 
 {% endblock %}
 
+
 {% block scripts %}
+
 <script>
   loadDeadlineWidget();
 </script>
+
 {% endblock %}

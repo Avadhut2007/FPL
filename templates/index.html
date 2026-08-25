@@ -2,45 +2,34 @@
 {% block title %}FPL Squad Lab{% endblock %}
 {% block content %}
 
-<header class="hero">
-  <div class="hero-stripes"></div>
-  <div class="hero-content">
-    <h1 class="wordmark">Squad <span class="accent">Lab</span></h1>
-    <p class="tagline">Build the mathematically-best Fantasy Premier League squad, get transfer suggestions for your real team, and track form, fixtures &amp; news — all from live FPL data.</p>
-  </div>
+<header class="hero-compact">
+  <h1 class="wordmark">FPL <span class="accent">Squad Lab</span></h1>
+  <p class="tagline">Data-driven Fantasy Premier League tools — live prices, form, and fixtures, not gut feel.</p>
 </header>
 
-<div class="home-grid">
-  <a href="/squad" class="nav-card">
-    <span class="nav-card-icon">⚽</span>
-    <h2>Squad Builder</h2>
-    <p>Generate an optimal 15-man squad under budget using linear programming.</p>
-  </a>
-  <a href="/transfers" class="nav-card">
-    <span class="nav-card-icon">🔁</span>
-    <h2>Transfers</h2>
-    <p>Load your real team by ID and get ranked upgrade suggestions.</p>
-  </a>
-  <a href="/chart" class="nav-card">
-    <span class="nav-card-icon">📊</span>
-    <h2>Charts</h2>
-    <p>Compare predicted vs. total points across the top players.</p>
-  </a>
-  <a href="/news" class="nav-card">
-    <span class="nav-card-icon">📰</span>
-    <h2>Player News</h2>
-    <p>Injuries, doubts and suspensions, pulled straight from the FPL feed.</p>
-  </a>
-  <a href="/fixtures" class="nav-card">
-    <span class="nav-card-icon">🗓️</span>
-    <h2>Fixtures</h2>
-    <p>Upcoming fixture difficulty for every club, gameweek by gameweek.</p>
-  </a>
-  <a href="/history" class="nav-card">
-    <span class="nav-card-icon">📈</span>
-    <h2>Past Performance</h2>
-    <p>How every player did in previous seasons vs. this season so far.</p>
-  </a>
-</div>
+<section class="deadline-banner" id="deadline-banner">
+  <div class="deadline-info">
+    <span class="deadline-label" id="deadline-label">Next Deadline</span>
+    <span class="deadline-countdown" id="deadline-countdown">Loading…</span>
+  </div>
+  <button class="btn btn-ghost btn-small" id="deadline-calendar-btn">📅 Add to Calendar</button>
+</section>
 
+<main class="home-grid-compact">
+  <a href="/transfers" class="nav-card-compact"><span>🔁</span><div><h2>Transfers</h2><p>Team view + suggestions</p></div></a>
+  <a href="/squad" class="nav-card-compact"><span>⚽</span><div><h2>Squad Builder</h2><p>Optimal 15-man squad</p></div></a>
+  <a href="/chart" class="nav-card-compact"><span>📊</span><div><h2>Points Chart</h2><p>Visual comparisons</p></div></a>
+  <a href="/news" class="nav-card-compact"><span>📰</span><div><h2>Player News</h2><p>Injuries & availability</p></div></a>
+  <a href="/fixtures" class="nav-card-compact"><span>🗓️</span><div><h2>Fixtures</h2><p>FDR difficulty grid</p></div></a>
+  <a href="/history" class="nav-card-compact"><span>📈</span><div><h2>Past Performance</h2><p>Previous seasons</p></div></a>
+  <a href="/live-scores" class="nav-card-compact"><span>⏱️</span><div><h2>Live Scores</h2><p>PL scores & table</p></div></a>
+  <a href="/transfer-news" class="nav-card-compact"><span>🗞️</span><div><h2>Transfer News</h2><p>Real transfer headlines</p></div></a>
+</main>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  loadDeadlineWidget();
+</script>
 {% endblock %}

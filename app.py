@@ -418,6 +418,42 @@ def _current_gw_date_range():
     return min(dates).strftime("%Y%m%d"), max(dates).strftime("%Y%m%d")
 
 
+@app.route("/api/debug-network")
+def api_debug_network():
+    """
+    TEMPORARY diagnostic route. Live scores/standings are coming back
+    empty in production even though the timeout issue is fixed, which
+    means the outbound request itself is failing (blocked, DNS, TLS,
+    etc.) rather than just being slow. This hits each upstream directly
+    with no fallback/caching in the way, and reports exactly what
+    happened, so we can see the real error without needing access to the
+    Vercel dashboard's function logs. Safe to delete once diagnosed.
+    """
+    import requests as _requests
+    targets = {
+        "espn_scoreboard": config.ESPN_SCOREBOARD_URL,
+        "espn_standings": config.ESPN_STANDINGS_URL,
+        "fpl_fixtures": config.FIXTURES_URL,
+    }
+    results = {}
+    for name, url in targets.items():
+        try:
+            resp = _requests.get(url, headers=external_data.HEADERS, timeout=8)
+            results[name] = {
+                "ok": True,
+                "status_code": resp.status_code,
+                "content_type": resp.headers.get("content-type"),
+                "body_preview": resp.text[:300],
+            }
+        except Exception as e:
+            results[name] = {
+                "ok": False,
+                "error_type": type(e).__name__,
+                "error": str(e),
+            }
+    return jsonify(results)
+
+
 @app.route("/api/live-scores")
 def api_live_scores():
     date_from, date_to = None, None

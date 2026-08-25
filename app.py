@@ -6,6 +6,7 @@ behind a small JSON API, served as a multi-page dark-themed site.
 """
 import os
 import stat
+from datetime import datetime
 
 from flask import Flask, jsonify, render_template, request
 import concurrent.futures
@@ -389,9 +390,36 @@ def api_history():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+def _current_gw_date_range():
+    """
+    'YYYYMMDD' start/end covering every fixture in the current FPL
+    gameweek — so the Live Scores page shows all of this gameweek's
+    matches (already played, live, or still to come) rather than just
+    whatever happens to kick off today.
+    """
+    bootstrap = fpl_api.get_bootstrap_data()
+    fixtures = fpl_api.get_fixtures()
+    current_gw = fpl_api.get_current_gameweek(bootstrap)
+
+    kickoffs = [
+        f["kickoff_time"] for f in fixtures
+        if f.get("event") == current_gw and f.get("kickoff_time")
+    ]
+    if not kickoffs:
+        today = datetime.utcnow().strftime("%Y%m%d")
+        return today, today
+
+    dates = [datetime.fromisoformat(k.replace("Z", "+00:00")) for k in kickoffs]
+    return min(dates).strftime("%Y%m%d"), max(dates).strftime("%Y%m%d")
+
+
 @app.route("/api/live-scores")
 def api_live_scores():
-    games = external_data.get_live_scores()
+    try:
+        date_from, date_to = _current_gw_date_range()
+    except Exception:
+        date_from, date_to = None, None
+    games = external_data.get_live_scores(date_from, date_to)
     return jsonify({"ok": True, "games": games})
 
 

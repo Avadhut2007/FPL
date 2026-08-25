@@ -33,3 +33,20 @@ FIXTURE_LOOKAHEAD_GWS = 5
 CACHE_DIR = "/tmp/fpl_cache" if os.environ.get("VERCEL") else "data"
 CACHE_TTL_HOURS = 6
 MIN_RELIABLE_MINUTES = 60
+
+# Official Premier League media CDN — same URLs the official FPL site and
+# every major third-party FPL tool use to show crests/photos. Built from the
+# "code" field already present on every team/player in bootstrap-static.
+TEAM_CREST_URL = "https://resources.premierleague.com/premierleague/badges/70/t{team_code}@2x.png"
+PLAYER_PHOTO_URL = "https://resources.premierleague.com/premierleague/photos/players/110x140/p{player_code}.png"
+
+# External, non-FPL data sources (no API key required for either)
+ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard"
+ESPN_STANDINGS_URL = "https://site.api.espn.com/apis/v2/sports/soccer/eng.1/standings"
+BBC_FOOTBALL_RSS_URL = "https://feeds.bbci.co.uk/sport/football/rss.xml"
+
+TRANSFER_KEYWORDS = [
+    "sign", "signs", "signing", "transfer", "loan", "medical", "deal",
+    "move to", "fee agreed", "bid", "target", "linked", "join", "joins",
+    "leave", "leaves", "release", "released", "contract",
+]

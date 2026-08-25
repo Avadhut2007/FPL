@@ -4,6 +4,7 @@ under FPL's real constraints, then the best starting XI + captain from it.
 """
 import pandas as pd
 import pulp
+import concurrent.futures
 
 import config
 
@@ -99,29 +100,67 @@ def pick_best_starting_xi(squad: pd.DataFrame):
     return starting_xi, bench, captain, vice_captain, best_formation
 
 
-def suggest_transfers(current_squad_ids: list, df: pd.DataFrame, free_transfers: int = 1, budget_bank: float = 0.0):
-    """
-    Simple transfer suggestion engine: for each position, find the biggest
-    predicted_points upgrade affordable within budget_bank + selling price
-    of a current player, limited to `free_transfers` swaps (to avoid points hits).
+def _historical_avg_points(player_id: int, history_fetcher) -> float:
+    """Average total points across a player's last 2 completed seasons, or
+    None if unavailable (e.g. brand new to the league)."""
+    try:
+        hist = history_fetcher(player_id)
+        past = hist.get("history_past", [])[-2:]
+        if not past:
+            return None
+        return sum(s["total_points"] for s in past) / len(past)
+    except Exception:
+        return None
 
-    Two squad-legality constraints are enforced on every suggestion:
+
+def suggest_transfers(
+    current_squad_ids: list,
+    df: pd.DataFrame,
+    free_transfers: int = 1,
+    budget_bank: float = 0.0,
+    history_fetcher=None,
+    shortlist_size: int = 10,
+    historical_weight: float = 0.2,
+    target_ids: list = None,
+):
+    """
+    Transfer suggestion engine. For each of your current players (worst first,
+    or exactly the players in `target_ids` if given — e.g. only your injured
+    ones, for the Injury Tracker), every affordable, position-matching,
+    club-limit-respecting replacement in the pool is considered, then ranked
+    by a blend of current predicted form AND real past-season performance
+    when `history_fetcher` is supplied (pass fpl_api.get_player_history in
+    production; leave None for pure current-form ranking, e.g. offline tests).
+
+    blended_score = predicted_points*(1-w) + (avg_points_last_2_seasons/38)*w
+
+    Squad-legality constraints enforced on every suggestion:
       - position-to-position only (a GKP can only be replaced by a GKP, etc.)
-      - max 3 players per club in the resulting squad, tracked cumulatively
-        so that several suggestions in the same call can never together push
-        a club over the limit (e.g. suggestion #1 and #2 both bringing in a
-        player from the same already-stacked club).
+      - max 3 players per club in the resulting squad, tracked cumulatively.
+
+    When `target_ids` is given, every targeted player gets a suggestion
+    attempt (not capped by `free_transfers`) since the point is "what should
+    replace each of these specific injured players", not "pick your best N
+    swaps overall".
 
     Returns a list of dicts: {out, in, gain, price_delta}.
     """
     current = df[df["id"].isin(current_squad_ids)].copy()
-    suggestions = []
+    if target_ids is not None:
+        current = current[current["id"].isin(target_ids)]
+        free_transfers = len(current)  # don't cap — cover every targeted player
 
-    # Running squad state — updated as each suggestion is committed, so
-    # later suggestions in this same call see the post-swap squad, not the
-    # original one.
+    suggestions = []
     squad_ids = set(current_squad_ids)
-    team_counts = current["team"].value_counts().to_dict()
+    team_counts = df[df["id"].isin(current_squad_ids)]["team"].value_counts().to_dict()
+
+    def blended_score(player_id, predicted_points):
+        if history_fetcher is None:
+            return predicted_points
+        hist_avg = _historical_avg_points(player_id, history_fetcher)
+        if hist_avg is None:
+            return predicted_points
+        return predicted_points * (1 - historical_weight) + (hist_avg / 38.0) * historical_weight
 
     for _, out_player in current.sort_values("predicted_points").iterrows():
         if out_player["id"] not in squad_ids:
@@ -134,43 +173,58 @@ def suggest_transfers(current_squad_ids: list, df: pd.DataFrame, free_transfers:
         team_counts_after_out = team_counts.copy()
         team_counts_after_out[out_team] = team_counts_after_out.get(out_team, 0) - 1
 
+        # Every affordable, position-matching player is a candidate — past
+        # performance (below) can justify a swap even if current predicted
+        # points are close or momentarily lower.
         candidates = df[
             (df["position"] == pos)                          # <-- position-to-position, hard filter
             & (~df["id"].isin(squad_ids))
             & (df["price"] <= max_price)
-            & (df["predicted_points"] > out_player["predicted_points"])
         ].copy()
 
-        # Max-3-per-club after this swap lands
         candidates["team_count_after_in"] = candidates["team"].map(
             lambda t: team_counts_after_out.get(t, 0) + 1
         )
         candidates = candidates[candidates["team_count_after_in"] <= config.MAX_PER_CLUB]
-        candidates = candidates.sort_values("predicted_points", ascending=False)
+        candidates = candidates.sort_values("predicted_points", ascending=False).head(shortlist_size)
 
-        if not candidates.empty:
-            best_in = candidates.iloc[0]
+        if candidates.empty:
+            continue
 
-            # Safety net: never let a cross-position swap slip through silently.
-            assert best_in["position"] == pos, (
-                f"Position mismatch: tried to replace {out_player['web_name']} "
-                f"({pos}) with {best_in['web_name']} ({best_in['position']})"
-            )
+        if history_fetcher is not None:
+            ids_to_warm = list(candidates["id"]) + [out_player["id"]]
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+                list(pool.map(lambda pid: _historical_avg_points(pid, history_fetcher), ids_to_warm))
 
-            suggestions.append({
-                "out": out_player["web_name"],
-                "out_points": round(out_player["predicted_points"], 2),
-                "in": best_in["web_name"],
-                "in_points": round(best_in["predicted_points"], 2),
-                "gain": round(best_in["predicted_points"] - out_player["predicted_points"], 2),
-                "price_delta": round(best_in["price"] - out_player["price"], 1),
-            })
+        out_score = blended_score(out_player["id"], out_player["predicted_points"])
+        candidates["blended_score"] = candidates.apply(
+            lambda r: blended_score(r["id"], r["predicted_points"]), axis=1
+        )
+        candidates = candidates.sort_values("blended_score", ascending=False)
+        best_in = candidates.iloc[0]
 
-            # Commit the swap to the running state before evaluating the next out_player
-            squad_ids.discard(out_player["id"])
-            squad_ids.add(best_in["id"])
-            team_counts[out_team] = team_counts.get(out_team, 0) - 1
-            team_counts[best_in["team"]] = team_counts.get(best_in["team"], 0) + 1
+        if best_in["blended_score"] <= out_score:
+            continue  # not a real upgrade once past performance is weighed in
+
+        assert best_in["position"] == pos, (
+            f"Position mismatch: tried to replace {out_player['web_name']} "
+            f"({pos}) with {best_in['web_name']} ({best_in['position']})"
+        )
+
+        suggestions.append({
+            "out": out_player["web_name"],
+            "out_id": int(out_player["id"]),
+            "out_points": round(out_player["predicted_points"], 2),
+            "in": best_in["web_name"],
+            "in_points": round(best_in["predicted_points"], 2),
+            "gain": round(best_in["predicted_points"] - out_player["predicted_points"], 2),
+            "price_delta": round(best_in["price"] - out_player["price"], 1),
+        })
+
+        squad_ids.discard(out_player["id"])
+        squad_ids.add(best_in["id"])
+        team_counts[out_team] = team_counts.get(out_team, 0) - 1
+        team_counts[best_in["team"]] = team_counts.get(best_in["team"], 0) + 1
 
         if len(suggestions) >= free_transfers:
             break

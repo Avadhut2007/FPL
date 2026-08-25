@@ -1,11 +1,11 @@
 /* =========================================================
    FPL SQUAD LAB
-   HOME PAGE / THEME TOGGLE FIX
+   HOME + GLOBAL RESPONSIVE FIXES
    ========================================================= */
 
 
 /* =========================================================
-   THEME TOGGLE BUTTON
+   THEME TOGGLE
    ========================================================= */
 
 .theme-toggle {
@@ -39,6 +39,9 @@
     font-size: 0 !important;
     line-height: 0 !important;
 
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+
     vertical-align: middle;
 
     cursor: pointer;
@@ -51,24 +54,7 @@
 
 
 /* =========================================================
-   REMOVE THE ORIGINAL EMOJI
-   ========================================================= */
-
-/*
-   main.js puts 🌙 / ☀️ inside the button.
-
-   We hide the text completely and create our own
-   icon using CSS.
-*/
-
-.theme-toggle {
-    color: transparent !important;
-    -webkit-text-fill-color: transparent !important;
-}
-
-
-/* =========================================================
-   DARK MODE — CRESCENT MOON
+   DARK MODE — CRESCENT
    ========================================================= */
 
 .theme-toggle::before {
@@ -93,10 +79,6 @@
     z-index: 2;
 }
 
-
-/* =========================================================
-   DARK MODE — MOON CUTOUT
-   ========================================================= */
 
 .theme-toggle::after {
     content: "";
@@ -156,17 +138,13 @@
 }
 
 
-/* =========================================================
-   LIGHT MODE — REMOVE MOON CUTOUT
-   ========================================================= */
-
 [data-theme="light"] .theme-toggle::after {
     display: none;
 }
 
 
 /* =========================================================
-   HOVER
+   THEME TOGGLE INTERACTION
    ========================================================= */
 
 .theme-toggle:hover {
@@ -174,18 +152,10 @@
 }
 
 
-/* =========================================================
-   ACTIVE / CLICK
-   ========================================================= */
-
 .theme-toggle:active {
     transform: translateY(0);
 }
 
-
-/* =========================================================
-   FOCUS
-   ========================================================= */
 
 .theme-toggle:focus {
     outline: none;
@@ -199,24 +169,255 @@
 
 
 /* =========================================================
-   MOBILE
+   FIXTURE TABLE
    ========================================================= */
 
-@media (max-width: 639px) {
+/*
+   The fixture table has a sticky Team column.
 
-    .theme-toggle {
-        width: 36px;
-        height: 36px;
+   The old setup allows individual TD borders to render
+   separately. On smaller screens this can make the line
+   underneath the club name look crooked or disconnected.
 
-        min-width: 36px;
-        min-height: 36px;
+   We therefore make every table row a consistent height
+   and use the SAME separator treatment for every cell.
+*/
 
-        max-width: 36px;
-        max-height: 36px;
 
-        flex-basis: 36px;
+.fdr-grid {
+    width: 100%;
 
-        border-radius: 8px !important;
+    border-collapse: separate;
+    border-spacing: 0;
+
+    table-layout: fixed;
+}
+
+
+/* ---------------------------------------------------------
+   Header
+   --------------------------------------------------------- */
+
+.fdr-grid thead th {
+    height: 48px;
+
+    padding: 0 12px;
+
+    vertical-align: middle;
+
+    box-sizing: border-box;
+
+    border-bottom: 1px solid var(--line);
+
+    text-align: left;
+
+    white-space: nowrap;
+}
+
+
+/* ---------------------------------------------------------
+   Body rows
+   --------------------------------------------------------- */
+
+.fdr-grid tbody tr {
+    height: 47px;
+}
+
+
+/* ---------------------------------------------------------
+   ALL BODY CELLS
+   --------------------------------------------------------- */
+
+.fdr-grid tbody td {
+    height: 47px;
+
+    padding: 0 12px;
+
+    box-sizing: border-box;
+
+    vertical-align: middle;
+
+    border-bottom: 1px solid var(--line);
+
+    white-space: nowrap;
+}
+
+
+/* ---------------------------------------------------------
+   TEAM COLUMN
+   --------------------------------------------------------- */
+
+.fdr-grid th:first-child,
+.fdr-grid td:first-child {
+    width: 150px;
+
+    min-width: 150px;
+
+    max-width: 150px;
+
+    text-align: left;
+}
+
+
+/*
+   Make the Team column separator exactly the same
+   as the rest of the table.
+*/
+
+.fdr-grid tbody td:first-child {
+    border-bottom: 1px solid var(--line);
+
+    background: var(--panel);
+}
+
+
+/* ---------------------------------------------------------
+   FIXTURE CELLS
+   --------------------------------------------------------- */
+
+.fdr-grid tbody td:not(:first-child) {
+    text-align: center;
+
+    border-bottom: 1px solid var(--line);
+}
+
+
+/* ---------------------------------------------------------
+   FDR BUTTONS
+   --------------------------------------------------------- */
+
+.fdr-grid .fdr-cell {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    box-sizing: border-box;
+
+    min-width: 68px;
+
+    height: 34px;
+
+    padding: 0 8px;
+
+    border-radius: 7px;
+
+    white-space: nowrap;
+
+    line-height: 1;
+
+    vertical-align: middle;
+}
+
+
+/* =========================================================
+   MOBILE FIXTURES
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    .table-scroll {
+        width: 100%;
+
+        max-width: 100%;
+
+        overflow-x: auto;
+        overflow-y: hidden;
+
+        -webkit-overflow-scrolling: touch;
+
+        scrollbar-width: thin;
+    }
+
+
+    .fdr-grid {
+        width: max-content;
+
+        min-width: 100%;
+    }
+
+
+    .fdr-grid thead th {
+        height: 44px;
+
+        padding: 0 10px;
+
+        font-size: 0.65rem;
+    }
+
+
+    .fdr-grid tbody tr {
+        height: 45px;
+    }
+
+
+    .fdr-grid tbody td {
+        height: 45px;
+
+        padding: 0 10px;
+
+        font-size: 0.75rem;
+    }
+
+
+    /*
+       Keep Team column perfectly consistent.
+    */
+
+    .fdr-grid th:first-child,
+    .fdr-grid td:first-child {
+        width: 126px;
+
+        min-width: 126px;
+
+        max-width: 126px;
+
+        padding-left: 10px;
+
+        padding-right: 10px;
+    }
+
+
+    /*
+       Keep every gameweek column the same width.
+    */
+
+    .fdr-grid th:not(:first-child),
+    .fdr-grid td:not(:first-child) {
+        width: 88px;
+
+        min-width: 88px;
+
+        max-width: 88px;
+
+        text-align: center;
+    }
+
+
+    .fdr-grid .fdr-cell {
+        min-width: 66px;
+
+        width: 66px;
+
+        height: 32px;
+
+        padding: 0 6px;
+
+        border-radius: 7px;
+
+        font-size: 0.68rem;
+    }
+
+
+    /*
+       IMPORTANT:
+       The Team separator and fixture separator now
+       have exactly the same height and position.
+    */
+
+    .fdr-grid tbody td:first-child,
+    .fdr-grid tbody td:not(:first-child) {
+        border-bottom: 1px solid var(--line);
     }
 
 }
@@ -226,47 +427,167 @@
    SMALL PHONES
    ========================================================= */
 
-@media (max-width: 380px) {
+@media (max-width: 420px) {
 
-    .theme-toggle {
-        width: 34px;
-        height: 34px;
+    .fdr-grid thead th {
+        height: 42px;
 
-        min-width: 34px;
-        min-height: 34px;
+        padding: 0 8px;
 
-        max-width: 34px;
-        max-height: 34px;
-
-        flex-basis: 34px;
+        font-size: 0.61rem;
     }
 
 
-    .theme-toggle::before {
-        width: 16px;
-        height: 16px;
+    .fdr-grid tbody tr {
+        height: 43px;
     }
 
 
-    .theme-toggle::after {
-        width: 16px;
-        height: 16px;
+    .fdr-grid tbody td {
+        height: 43px;
+
+        padding: 0 8px;
     }
 
 
-    [data-theme="light"] .theme-toggle::before {
-        width: 13px;
-        height: 13px;
+    .fdr-grid th:first-child,
+    .fdr-grid td:first-child {
+        width: 112px;
 
-        box-shadow:
-            0 -6px 0 -5px #D89B00,
-            0 6px 0 -5px #D89B00,
-            6px 0 0 -5px #D89B00,
-            -6px 0 0 -5px #D89B00,
-            4px 4px 0 -5px #D89B00,
-            -4px -4px 0 -5px #D89B00,
-            4px -4px 0 -5px #D89B00,
-            -4px 4px 0 -5px #D89B00;
+        min-width: 112px;
+
+        max-width: 112px;
+
+        padding-left: 8px;
+
+        padding-right: 8px;
+    }
+
+
+    .fdr-grid th:not(:first-child),
+    .fdr-grid td:not(:first-child) {
+        width: 82px;
+
+        min-width: 82px;
+
+        max-width: 82px;
+    }
+
+
+    .fdr-grid .fdr-cell {
+        min-width: 62px;
+
+        width: 62px;
+
+        height: 30px;
+
+        padding: 0 5px;
+
+        font-size: 0.64rem;
+
+        border-radius: 6px;
     }
 
 }
+
+
+/* =========================================================
+   VERY SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 360px) {
+
+    .fdr-grid th:first-child,
+    .fdr-grid td:first-child {
+        width: 104px;
+
+        min-width: 104px;
+
+        max-width: 104px;
+    }
+
+
+    .fdr-grid th:not(:first-child),
+    .fdr-grid td:not(:first-child) {
+        width: 78px;
+
+        min-width: 78px;
+
+        max-width: 78px;
+    }
+
+
+    .fdr-grid .fdr-cell {
+        min-width: 59px;
+
+        width: 59px;
+
+        font-size: 0.61rem;
+    }
+
+}
+
+
+/* =========================================================
+   STICKY TEAM COLUMN
+   ========================================================= */
+
+/*
+   Keep the club names locked while scrolling horizontally.
+   The separator remains visible and aligned with the row.
+*/
+
+@media (max-width: 700px) {
+
+    .fdr-grid th:first-child,
+    .fdr-grid td:first-child {
+        position: sticky;
+
+        left: 0;
+
+        z-index: 5;
+    }
+
+
+    .fdr-grid thead th:first-child {
+        z-index: 8;
+
+        background: var(--panel);
+    }
+
+
+    .fdr-grid tbody td:first-child {
+        background: var(--panel);
+    }
+
+}
+
+
+/* =========================================================
+   PREVENT TABLE FROM CREATING RANDOM HEIGHTS
+   ========================================================= */
+
+.fdr-grid tbody td,
+.fdr-grid tbody tr {
+    line-height: 1.2;
+
+    vertical-align: middle;
+}
+
+
+/* =========================================================
+   TEAM NAME ALIGNMENT
+   ========================================================= */
+
+.fdr-grid tbody td:first-child {
+    font-weight: 600;
+
+    white-space: nowrap;
+
+    text-align: left;
+}
+
+
+/* =========================================================
+   END
+   ========================================================= */

@@ -396,10 +396,15 @@ def _current_gw_date_range():
     gameweek — so the Live Scores page shows all of this gameweek's
     matches (already played, live, or still to come) rather than just
     whatever happens to kick off today.
+
+    Only hits fixtures/ (not bootstrap-static, which also drags along
+    every player's full stats block) and uses a short, single-attempt
+    timeout budget — this backs a real-time page, so a slow/unreachable
+    FPL API should fall back to "today" quickly rather than hang the
+    request until the serverless function itself gets killed.
     """
-    bootstrap = fpl_api.get_bootstrap_data()
-    fixtures = fpl_api.get_fixtures()
-    current_gw = fpl_api.get_current_gameweek(bootstrap)
+    fixtures = fpl_api.get_fixtures(retries=1, timeout=6)
+    current_gw = fpl_api.get_current_gameweek_from_fixtures(fixtures)
 
     kickoffs = [
         f["kickoff_time"] for f in fixtures
@@ -415,9 +420,13 @@ def _current_gw_date_range():
 
 @app.route("/api/live-scores")
 def api_live_scores():
+    date_from, date_to = None, None
     try:
-        date_from, date_to = _current_gw_date_range()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            date_from, date_to = pool.submit(_current_gw_date_range).result(timeout=7)
     except Exception:
+        # FPL API slow/unreachable — fall back to just today's fixtures
+        # rather than let the whole page hang.
         date_from, date_to = None, None
     games = external_data.get_live_scores(date_from, date_to)
     return jsonify({"ok": True, "games": games})

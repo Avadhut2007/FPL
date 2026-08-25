@@ -14,11 +14,25 @@ async function fetchJSON(url) {
   return data;
 }
 
-// ---------------- Navbar (mobile toggle) ----------------
+function crestImg(url, cls) {
+  if (!url) return "";
+  return `<img class="${cls}" src="${url}" alt="" onerror="this.style.display='none'">`;
+}
 
-if (el("nav-toggle")) {
-  el("nav-toggle").addEventListener("click", () => {
-    el("nav-links").classList.toggle("open");
+// ---------------- Theme toggle ----------------
+
+if (el("theme-toggle")) {
+  const applyIcon = () => {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    el("theme-toggle").textContent = current === "dark" ? "🌙" : "☀️";
+  };
+  applyIcon();
+  el("theme-toggle").addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("fpl-theme", next);
+    applyIcon();
   });
 }
 
@@ -28,15 +42,63 @@ function chipHTML(player, isCaptain, isVice, pointsLabel) {
   const badge = isCaptain
     ? '<span class="armband">C</span>'
     : isVice
-    ? '<span class="armband" style="background:#8A9A93;color:#0A0F0D">V</span>'
+    ? '<span class="armband" style="background:#8D89A0;color:#050505">V</span>'
     : "";
   const capClass = isCaptain ? "captain" : "";
   return `
     <div class="player-chip ${capClass}">
       ${badge}
-      <span class="name">${player.name}</span>
+      <span class="name">${crestImg(player.team_crest, "crest")}${player.name}</span>
       <span class="meta">${player.team} · ${pointsLabel}</span>
     </div>`;
+}
+
+// =========================================================
+// HOME PAGE — Deadline widget
+// =========================================================
+
+let deadlineTimer = null;
+
+function formatCountdown(deadlineIso) {
+  const diff = new Date(deadlineIso).getTime() - Date.now();
+  if (diff <= 0) return "Deadline has passed";
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const mins = Math.floor((diff / (1000 * 60)) % 60);
+  const secs = Math.floor((diff / 1000) % 60);
+  if (days > 0) return `${days}d ${hours}h ${mins}m`;
+  if (hours > 0) return `${hours}h ${mins}m ${secs}s`;
+  return `${mins}m ${secs}s`;
+}
+
+function googleCalendarUrl(deadline) {
+  const start = new Date(deadline.deadline_time);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  const fmt = (d) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const text = encodeURIComponent(`FPL Deadline — ${deadline.name}`);
+  const dates = `${fmt(start)}/${fmt(end)}`;
+  const details = encodeURIComponent("Fantasy Premier League transfer deadline.");
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dates}&details=${details}`;
+}
+
+async function loadDeadlineWidget() {
+  try {
+    const data = await fetchJSON("/api/deadline");
+    el("deadline-label").textContent = data.name || "Next Deadline";
+
+    if (deadlineTimer) clearInterval(deadlineTimer);
+    const tick = () => {
+      el("deadline-countdown").textContent = formatCountdown(data.deadline_time);
+    };
+    tick();
+    deadlineTimer = setInterval(tick, 1000);
+
+    el("deadline-calendar-btn").onclick = () => {
+      window.open(googleCalendarUrl(data), "_blank", "noopener");
+    };
+  } catch (e) {
+    el("deadline-countdown").textContent = "Unavailable right now";
+  }
 }
 
 // =========================================================
@@ -94,7 +156,7 @@ async function refreshData() {
   btn.textContent = "↻ Refreshing…";
   try {
     await fetchJSON("/api/squad?refresh=1");
-    await loadTopPlayers("ALL");
+    await loadTopPlayers();
   } catch (e) {
     // ignore — user will see error if they click generate
   } finally {
@@ -103,64 +165,159 @@ async function refreshData() {
   }
 }
 
-async function loadTopPlayers(position) {
+// ---------------- Player Explorer (search + filter + expand chart) ----------------
+
+let explorerPlayers = [];
+let explorerPos = "ALL";
+let expandedPlayerId = null;
+let explorerChart = null;
+
+function playerRowHTML(p) {
+  return `
+    <tr data-player-id="${p.id}">
+      <td>${crestImg(p.team_crest, "player-row-crest")}</td>
+      <td>${p.name}</td>
+      <td>${p.team}</td>
+      <td>${p.position}</td>
+      <td class="mono-cell">£${p.price.toFixed(1)}</td>
+      <td class="mono-cell">${p.form.toFixed(1)}</td>
+      <td class="mono-cell">${p.predicted_points.toFixed(2)}</td>
+      <td class="mono-cell">${p.value.toFixed(2)}</td>
+    </tr>`;
+}
+
+function populateTeamFilter() {
+  const select = el("team-filter");
+  if (!select || select.options.length > 1) return;
+  const teams = [...new Set(explorerPlayers.map((p) => p.team))].sort();
+  teams.forEach((t) => {
+    const opt = document.createElement("option");
+    opt.value = t;
+    opt.textContent = t;
+    select.appendChild(opt);
+  });
+}
+
+function renderExplorerTable() {
   const tbody = el("table-body");
-  tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Loading…</td></tr>`;
+  const query = (el("player-search")?.value || "").toLowerCase().trim();
+  const teamFilter = el("team-filter")?.value || "ALL";
+
+  let visible = explorerPlayers;
+  if (explorerPos !== "ALL") visible = visible.filter((p) => p.position === explorerPos);
+  if (teamFilter !== "ALL") visible = visible.filter((p) => p.team === teamFilter);
+  if (query) visible = visible.filter((p) => p.name.toLowerCase().includes(query));
+
+  if (visible.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="table-empty">No players match your filters.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = visible.map(playerRowHTML).join("");
+}
+
+async function loadTopPlayers() {
+  const tbody = el("table-body");
+  tbody.innerHTML = `<tr><td colspan="8" class="table-empty">Loading…</td></tr>`;
   try {
-    const url = position === "ALL" ? "/api/top?n=25" : `/api/top?n=25&position=${position}`;
-    const data = await fetchJSON(url);
-    if (data.players.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="table-empty">No players found</td></tr>`;
-      return;
-    }
-    tbody.innerHTML = data.players
-      .map(
-        (p) => `
-      <tr>
-        <td>${p.name}</td>
-        <td>${p.team}</td>
-        <td>${p.position}</td>
-        <td class="mono-cell">£${p.price.toFixed(1)}</td>
-        <td class="mono-cell">${p.form.toFixed(1)}</td>
-        <td class="mono-cell">${p.predicted_points.toFixed(2)}</td>
-        <td class="mono-cell">${p.value.toFixed(2)}</td>
-      </tr>`
-      )
-      .join("");
+    const data = await fetchJSON("/api/top?n=150");
+    explorerPlayers = data.players;
+    populateTeamFilter();
+    renderExplorerTable();
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Error: ${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="table-empty">Error: ${e.message}</td></tr>`;
+  }
+}
+
+async function togglePlayerChart(playerId, rowEl) {
+  const existing = el("expand-chart-row");
+  if (existing) existing.remove();
+
+  if (expandedPlayerId === playerId) {
+    expandedPlayerId = null;
+    return;
+  }
+  expandedPlayerId = playerId;
+
+  const chartRow = document.createElement("tr");
+  chartRow.id = "expand-chart-row";
+  chartRow.className = "expand-chart-row";
+  chartRow.innerHTML = `<td colspan="8"><div class="expand-chart-wrap"><canvas id="player-expand-canvas"></canvas></div></td>`;
+  rowEl.after(chartRow);
+
+  try {
+    const data = await fetchJSON(`/api/player-history/${playerId}`);
+    const ctx = el("player-expand-canvas").getContext("2d");
+    if (explorerChart) explorerChart.destroy();
+    explorerChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: data.history.map((h) => `GW${h.gw}`),
+        datasets: [{
+          label: "Points",
+          data: data.history.map((h) => h.points),
+          borderColor: "#9B6BF0",
+          backgroundColor: "rgba(155, 107, 240, 0.15)",
+          fill: true,
+          tension: 0.25,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: "#8D89A0" }, grid: { color: "rgba(255,255,255,0.06)" } },
+          y: { ticks: { color: "#8D89A0" }, grid: { color: "rgba(255,255,255,0.06)" }, beginAtZero: true },
+        },
+      },
+    });
+  } catch (e) {
+    chartRow.innerHTML = `<td colspan="8" class="table-empty">Error loading history: ${e.message}</td>`;
   }
 }
 
 if (el("generate-btn")) {
   el("generate-btn").addEventListener("click", generateSquad);
   el("refresh-btn").addEventListener("click", refreshData);
+
   document.querySelectorAll(".pos-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       document.querySelectorAll(".pos-tab").forEach((t) => t.classList.remove("active"));
       tab.classList.add("active");
-      loadTopPlayers(tab.dataset.pos);
+      explorerPos = tab.dataset.pos;
+      renderExplorerTable();
     });
   });
-  loadTopPlayers("ALL");
+
+  el("player-search").addEventListener("input", renderExplorerTable);
+  el("team-filter").addEventListener("change", renderExplorerTable);
+
+  el("table-body").addEventListener("click", (e) => {
+    const row = e.target.closest("tr[data-player-id]");
+    if (!row) return;
+    togglePlayerChart(parseInt(row.dataset.playerId, 10), row);
+  });
+
+  loadTopPlayers();
 }
 
 // =========================================================
-// TRANSFERS PAGE (FotMob-style team view + suggestions)
+// TRANSFERS PAGE (FotMob-style team view + suggestions + injury tracker)
 // =========================================================
 
 function fmChipHTML(player) {
   const badge = player.is_captain
     ? '<span class="armband">C</span>'
     : player.is_vice_captain
-    ? '<span class="armband" style="background:#8A9A93;color:#0A0F0D">V</span>'
+    ? '<span class="armband" style="background:#8D89A0;color:#050505">V</span>'
     : "";
   const capClass = player.is_captain ? "captain" : "";
   const flag = player.status !== "a" ? ' <span style="color:#C1483F">●</span>' : "";
   return `
     <div class="player-chip ${capClass}">
       ${badge}
-      <span class="name">${player.name}${flag}</span>
+      <span class="name">${crestImg(player.team_crest, "crest")}${player.name}${flag}</span>
       <span class="meta">${player.team} · £${player.price.toFixed(1)}</span>
     </div>`;
 }
@@ -188,6 +345,57 @@ function renderFotmobPitch(data) {
   el("team-card").style.display = "block";
 }
 
+function renderTransferSuggestions(suggestions) {
+  const listEl = el("transfers-list");
+  if (suggestions.length === 0) {
+    listEl.innerHTML = `<p class="transfers-hint">No beneficial transfers found — your squad looks solid.</p>`;
+    return;
+  }
+  listEl.innerHTML = suggestions
+    .map(
+      (s) => `
+    <div class="transfer-row">
+      <span class="transfer-out">OUT: ${s.out} (${s.out_points})</span>
+      <span class="transfer-arrow">→</span>
+      <span class="transfer-in">IN: ${s.in} (${s.in_points})</span>
+      <span class="transfer-gain">+${s.gain} pts · ${s.price_delta >= 0 ? "+" : ""}${s.price_delta}m</span>
+    </div>`
+    )
+    .join("");
+}
+
+function renderInjuryTracker(flagged, suggestions) {
+  const panel = el("injury-tracker-panel");
+  const listEl = el("injury-tracker-list");
+
+  if (!flagged || flagged.length === 0) {
+    panel.style.display = "none";
+    return;
+  }
+  panel.style.display = "block";
+
+  const suggestionByOutId = {};
+  suggestions.forEach((s) => { suggestionByOutId[s.out_id] = s; });
+
+  listEl.innerHTML = flagged
+    .map((p) => {
+      const suggestion = suggestionByOutId[p.id];
+      const suggestionHTML = suggestion
+        ? `<div class="injury-suggestion">Suggested swap: <span class="transfer-in">${suggestion.in}</span> (+${suggestion.gain} pts · ${suggestion.price_delta >= 0 ? "+" : ""}${suggestion.price_delta}m)</div>`
+        : `<div class="injury-suggestion">No affordable upgrade found within your budget.</div>`;
+      return `
+      <div class="injury-row">
+        ${crestImg(p.team_crest, "injury-crest")}
+        <span class="injury-name">${p.name}</span>
+        <span class="injury-meta">${p.team} · ${p.position}</span>
+        <span class="news-status">${p.status_label}</span>
+        ${p.news ? `<span class="news-item-text">${p.news}</span>` : ""}
+        ${suggestionHTML}
+      </div>`;
+    })
+    .join("");
+}
+
 async function analyzeMyTeam() {
   const teamId = el("team-id-input").value;
   const freeTransfers = el("free-transfers-input").value || 1;
@@ -202,30 +410,18 @@ async function analyzeMyTeam() {
   btn.disabled = true;
   btn.textContent = "Analyzing…";
   listEl.innerHTML = `<p class="transfers-hint">Fetching your squad and checking for upgrades…</p>`;
+  el("injury-tracker-panel").style.display = "none";
 
   try {
-    const [teamData, transferData] = await Promise.all([
+    const [teamData, transferData, injuryData] = await Promise.all([
       fetchJSON(`/api/team/${teamId}`),
       fetchJSON(`/api/transfers?team_id=${teamId}&free_transfers=${freeTransfers}`),
+      fetchJSON(`/api/injury-tracker/${teamId}`),
     ]);
 
     renderFotmobPitch(teamData);
-
-    if (transferData.suggestions.length === 0) {
-      listEl.innerHTML = `<p class="transfers-hint">No beneficial transfers found — your squad looks solid.</p>`;
-    } else {
-      listEl.innerHTML = transferData.suggestions
-        .map(
-          (s) => `
-        <div class="transfer-row">
-          <span class="transfer-out">OUT: ${s.out} (${s.out_points})</span>
-          <span class="transfer-arrow">→</span>
-          <span class="transfer-in">IN: ${s.in} (${s.in_points})</span>
-          <span class="transfer-gain">+${s.gain} pts · ${s.price_delta >= 0 ? "+" : ""}${s.price_delta}m</span>
-        </div>`
-        )
-        .join("");
-    }
+    renderTransferSuggestions(transferData.suggestions);
+    renderInjuryTracker(injuryData.flagged_players, injuryData.suggestions);
   } catch (e) {
     listEl.innerHTML = `<p class="transfers-hint">Error: ${e.message}</p>`;
   } finally {
@@ -257,6 +453,7 @@ async function loadPlayerNews() {
         const chanceText = chance === null || chance === undefined ? "" : ` · ${chance}% chance next GW`;
         return `
       <div class="news-row ${rowClass}">
+        ${crestImg(p.team_crest, "news-crest")}
         <span class="news-name">${p.name}</span>
         <span class="news-meta">${p.team} · ${p.position}${chanceText}</span>
         <span class="news-status">${p.status_label}</span>
@@ -274,60 +471,42 @@ if (el("news-list")) {
   setInterval(loadPlayerNews, 5 * 60 * 1000);
 }
 
-
 // =========================================================
-// FIXTURES PAGE (single gameweek at a time, via dropdown)
+// FIXTURES PAGE (team x gameweek FDR grid)
 // =========================================================
 
-function difficultyClass(d) {
-  if (d <= 2) return "fdr-easy";
-  if (d === 3) return "fdr-mid";
-  return "fdr-hard";
+function fdrCellHTML(cell) {
+  if (!cell) return `<td><span class="table-empty-cell">—</span></td>`;
+  const venue = cell.is_home ? "H" : "A";
+  return `<td><span class="fdr-cell fdr-${cell.difficulty}">${cell.opponent} (${venue})</span></td>`;
 }
 
-async function loadFixtures(gw) {
-  const box = el("fixtures-scroll");
-  box.innerHTML = `<p class="table-empty">Loading fixtures…</p>`;
-
+async function loadFdrGrid() {
+  const table = el("fdr-grid");
   try {
-    const url = gw ? `/api/fixtures?gw=${gw}` : "/api/fixtures";
-    const data = await fetchJSON(url);
+    const data = await fetchJSON("/api/fixtures");
 
-    const select = el("fixtures-gw-select");
-    if (select.options.length === 0) {
-      data.available_gameweeks.forEach((g) => {
-        const opt = document.createElement("option");
-        opt.value = g;
-        opt.textContent = g === data.current_gameweek ? `Gameweek ${g} (current)` : `Gameweek ${g}`;
-        select.appendChild(opt);
-      });
-    }
-    select.value = data.gameweek;
-    el("fixtures-gw-badge").textContent = `GW ${data.gameweek}`;
+    const headRow = data.gameweeks.map((gw) => `<th>GW${gw}</th>`).join("");
+    table.querySelector("thead").innerHTML = `<tr><th>Team</th>${headRow}</tr>`;
 
-    if (data.fixtures.length === 0) {
-      box.innerHTML = `<p class="table-empty">No fixtures found for this gameweek.</p>`;
+    if (data.teams.length === 0) {
+      table.querySelector("tbody").innerHTML = `<tr><td class="table-empty">No fixtures found.</td></tr>`;
       return;
     }
 
-    box.innerHTML = data.fixtures
-      .map(
-        (f) => `
-      <div class="fixture-row">
-        <span class="fixture-team ${difficultyClass(f.home_difficulty)}">${f.home}</span>
-        <span class="fixture-vs">vs</span>
-        <span class="fixture-team ${difficultyClass(f.away_difficulty)}">${f.away}</span>
-      </div>`
-      )
+    table.querySelector("tbody").innerHTML = data.teams
+      .map((t) => {
+        const cells = t.fixtures.map(fdrCellHTML).join("");
+        return `<tr><td class="fdr-team-cell">${crestImg(t.team_crest, "")}${t.team}</td>${cells}</tr>`;
+      })
       .join("");
   } catch (e) {
-    box.innerHTML = `<p class="table-empty">Error loading fixtures: ${e.message}</p>`;
+    table.querySelector("tbody").innerHTML = `<tr><td class="table-empty">Error loading fixtures: ${e.message}</td></tr>`;
   }
 }
 
-if (el("fixtures-scroll")) {
-  loadFixtures();
-  el("fixtures-gw-select").addEventListener("change", (e) => loadFixtures(parseInt(e.target.value)));
+if (el("fdr-grid")) {
+  loadFdrGrid();
 }
 
 // =========================================================
@@ -384,13 +563,17 @@ async function loadHistoryPage() {
 
     renderHistoryRows();
 
-    status.textContent = `Showing ${historyAllRows.length} of ${data.total} players`;
-    if (!data.has_more) {
+    if (status) {
+      status.textContent = `Showing ${historyAllRows.length} of ${data.total} players`;
+      if (!data.has_more) {
+        status.textContent += " — that's everyone.";
+      }
+    }
+    if (!data.has_more && btn) {
       btn.style.display = "none";
-      status.textContent += " — that's everyone.";
     }
   } catch (e) {
-    status.textContent = `Error: ${e.message}`;
+    if (status) status.textContent = `Error: ${e.message}`;
   } finally {
     if (btn && btn.style.display !== "none") {
       btn.disabled = false;
@@ -433,7 +616,7 @@ async function loadChartData() {
           {
             label,
             data: values,
-            backgroundColor: "#C9A227",
+            backgroundColor: "#9B6BF0",
             borderRadius: 4,
           },
         ],
@@ -442,10 +625,10 @@ async function loadChartData() {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: { ticks: { color: "#8A9A93" }, grid: { color: "rgba(255,255,255,0.06)" } },
-          y: { ticks: { color: "#8A9A93" }, grid: { color: "rgba(255,255,255,0.06)" } },
+          x: { ticks: { color: "#8D89A0" }, grid: { color: "rgba(255,255,255,0.06)" } },
+          y: { ticks: { color: "#8D89A0" }, grid: { color: "rgba(255,255,255,0.06)" } },
         },
-        plugins: { legend: { labels: { color: "#ECEDEA" } } },
+        plugins: { legend: { labels: { color: "#EDEBF2" } } },
       },
     });
   } catch (e) {
@@ -458,4 +641,97 @@ if (el("points-chart")) {
   el("chart-refresh-btn").addEventListener("click", loadChartData);
   el("chart-position-select").addEventListener("change", loadChartData);
   el("chart-metric-select").addEventListener("change", loadChartData);
+}
+
+// =========================================================
+// LIVE SCORES PAGE
+// =========================================================
+
+async function loadLiveScores() {
+  const listEl = el("live-scores-list");
+  try {
+    const data = await fetchJSON("/api/live-scores");
+    if (data.games.length === 0) {
+      listEl.innerHTML = `<p class="table-empty">No games scheduled today.</p>`;
+      return;
+    }
+    listEl.innerHTML = data.games
+      .map((g) => {
+        const statusClass = g.is_live ? "is-live" : "";
+        return `
+      <div class="live-score-row">
+        <span class="live-score-teams">
+          ${crestImg(g.home_crest, "")}${g.home_team} ${g.home_score} — ${g.away_score} ${g.away_team}${crestImg(g.away_crest, "")}
+        </span>
+        <span class="live-score-status ${statusClass}">${g.status}</span>
+      </div>`;
+      })
+      .join("");
+  } catch (e) {
+    listEl.innerHTML = `<p class="table-empty">Live scores unavailable right now.</p>`;
+  }
+}
+
+async function loadStandings() {
+  const tbody = el("standings-body");
+  try {
+    const data = await fetchJSON("/api/standings");
+    if (data.table.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" class="table-empty">Standings unavailable right now.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.table
+      .map(
+        (t) => `
+      <tr>
+        <td class="mono-cell">${t.rank ?? "—"}</td>
+        <td>${crestImg(t.crest, "standings-crest")}</td>
+        <td>${t.team}</td>
+        <td class="mono-cell">${t.played ?? "—"}</td>
+        <td class="mono-cell">${t.won ?? "—"}</td>
+        <td class="mono-cell">${t.drawn ?? "—"}</td>
+        <td class="mono-cell">${t.lost ?? "—"}</td>
+        <td class="mono-cell">${t.goal_diff ?? "—"}</td>
+        <td class="mono-cell">${t.points ?? "—"}</td>
+      </tr>`
+      )
+      .join("");
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="9" class="table-empty">Standings unavailable right now.</td></tr>`;
+  }
+}
+
+if (el("live-scores-list")) {
+  loadLiveScores();
+  loadStandings();
+}
+
+// =========================================================
+// TRANSFER NEWS PAGE
+// =========================================================
+
+async function loadTransferNews() {
+  const listEl = el("transfer-news-list");
+  try {
+    const data = await fetchJSON("/api/transfer-news");
+    if (data.news.length === 0) {
+      listEl.innerHTML = `<p class="table-empty">No transfer news right now.</p>`;
+      return;
+    }
+    listEl.innerHTML = data.news
+      .map(
+        (n) => `
+      <div class="transfer-news-item">
+        <a href="${n.link}" target="_blank" rel="noopener">${n.title}</a>
+        <span class="news-meta">${n.published}</span>
+      </div>`
+      )
+      .join("");
+  } catch (e) {
+    listEl.innerHTML = `<p class="table-empty">Transfer news unavailable right now.</p>`;
+  }
+}
+
+if (el("transfer-news-list")) {
+  loadTransferNews();
 }

@@ -1,0 +1,85 @@
+/* ============================================
+   FPL Squad Lab
+   Header / Theme Toggle Fix
+   ============================================ */
+
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+
+  min-width: 36px;
+  min-height: 36px;
+
+  padding: 0;
+  margin: 0;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+
+  overflow: hidden;
+
+  line-height: 1;
+  font-size: 0.95rem;
+
+  border-radius: 8px;
+
+  vertical-align: middle;
+
+  flex-shrink: 0;
+}
+
+
+/* Keep the moon visually inside the button */
+
+.theme-toggle::first-letter {
+  line-height: 1;
+}
+
+
+/* Hover */
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+}
+
+
+/* Mobile */
+
+@media (max-width: 639px) {
+
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+
+    min-width: 36px;
+    min-height: 36px;
+
+    padding: 0;
+
+    font-size: 0.92rem;
+
+    border-radius: 8px;
+  }
+
+}
+
+
+/* Very small phones */
+
+@media (max-width: 380px) {
+
+  .theme-toggle {
+    width: 34px;
+    height: 34px;
+
+    min-width: 34px;
+    min-height: 34px;
+
+    font-size: 0.88rem;
+  }
+
+}

@@ -5,19 +5,25 @@ Handles caching so you don't hammer the endpoint every time you run the app.
 import json
 import os
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import requests
 
 import config
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept": "application/json",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9",
     "Referer": "https://fantasy.premierleague.com/",
+    "Origin": "https://fantasy.premierleague.com",
 }
+
+_session = requests.Session()
+_session.headers.update(HEADERS)
 
 
 def _cache_path(name: str) -> str:
@@ -41,17 +47,7 @@ def _write_cache(name: str, data):
         json.dump(data, f)
 
 
-def _get(url: str, cache_name: str = None, force_refresh: bool = False,
-          retries: int = 2, timeout: int = 8, backoff: float = 1.0):
-    """
-    retries/timeout are kept small on purpose: this runs inside a Vercel
-    serverless function, which has a hard execution time limit regardless
-    of what vercel.json asks for. The old defaults (3 retries x 15s timeout
-    + growing sleeps) could take ~45s on a cold container talking to a
-    slow/blocked upstream — comfortably past that limit, so the function
-    got killed before it ever reached its own fallback logic. Callers on a
-    real-time page (e.g. live scores) should pass an even tighter budget.
-    """
+def _get(url: str, cache_name: str = None, force_refresh: bool = False, retries: int = 4):
     if cache_name and not force_refresh:
         cached = _read_cache(cache_name)
         if cached is not None:
@@ -60,7 +56,7 @@ def _get(url: str, cache_name: str = None, force_refresh: bool = False,
     last_err = None
     for attempt in range(retries):
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=timeout)
+            resp = _session.get(url, timeout=15)
             resp.raise_for_status()
             data = resp.json()
             if cache_name:
@@ -68,8 +64,7 @@ def _get(url: str, cache_name: str = None, force_refresh: bool = False,
             return data
         except (requests.RequestException, json.JSONDecodeError) as e:
             last_err = e
-            if attempt < retries - 1:
-                time.sleep(backoff * (attempt + 1))
+            time.sleep(1.5 * (attempt + 1))
     raise RuntimeError(f"Failed to fetch {url} after {retries} attempts: {last_err}")
 
 
@@ -77,9 +72,8 @@ def get_bootstrap_data(force_refresh: bool = False) -> dict:
     return _get(config.BOOTSTRAP_URL, cache_name="bootstrap", force_refresh=force_refresh)
 
 
-def get_fixtures(force_refresh: bool = False, retries: int = 2, timeout: int = 8) -> list:
-    return _get(config.FIXTURES_URL, cache_name="fixtures", force_refresh=force_refresh,
-                retries=retries, timeout=timeout)
+def get_fixtures(force_refresh: bool = False) -> list:
+    return _get(config.FIXTURES_URL, cache_name="fixtures", force_refresh=force_refresh)
 
 
 def get_player_history(player_id: int, force_refresh: bool = False) -> dict:
@@ -107,42 +101,10 @@ def get_current_gameweek(bootstrap: dict) -> int:
     return bootstrap["events"][-1]["id"]
 
 
-def get_current_gameweek_from_fixtures(fixtures: list) -> int:
-    """
-    Same idea as get_current_gameweek(), but derived purely from
-    fixtures/ — no bootstrap-static call needed. bootstrap-static also
-    returns every player's full stats block (a multi-MB payload), which is
-    overkill just to find "what gameweek is it", and is the main reason
-    the live-scores endpoint used to be slow enough to time out.
-    """
-    by_event = {}
-    for f in fixtures:
-        event = f.get("event")
-        if event is None:
-            continue
-        by_event.setdefault(event, []).append(f)
-
-    for event in sorted(by_event):
-        if not all(f.get("finished") for f in by_event[event]):
-            return event
-
-    return max(by_event) if by_event else 1
-
-
 def get_next_deadline(bootstrap: dict) -> dict:
-    """
-    The next gameweek deadline that hasn't passed yet, for the Deadline
-    Reminder widget. Deliberately does NOT use "is_next"/"finished" — a
-    gameweek stays "not finished" for a while after its own deadline (while
-    matches are still being played and bonus points processed), so that
-    flag alone would keep showing a deadline that's already in the past.
-    Instead this picks the first gameweek whose deadline_time is still in
-    the future relative to right now.
-    """
-    now = datetime.now(timezone.utc)
+    """The next unfinished gameweek's deadline, for the Deadline Reminder widget."""
     for event in bootstrap["events"]:
-        deadline = datetime.fromisoformat(event["deadline_time"].replace("Z", "+00:00"))
-        if deadline > now:
+        if event.get("is_next") or not event.get("finished"):
             return {"gameweek": event["id"], "name": event["name"], "deadline_time": event["deadline_time"]}
     last = bootstrap["events"][-1]
     return {"gameweek": last["id"], "name": last["name"], "deadline_time": last["deadline_time"]}

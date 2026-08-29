@@ -157,20 +157,25 @@ a {
 
 
 .theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   background: var(--panel-2);
   border: 1px solid var(--border);
 
   color: var(--text);
 
   font-size: 1rem;
+  line-height: 1;
 
-  padding: 7px 11px;
+  padding: 0;
+  width: 34px;
+  height: 34px;
 
   border-radius: 7px;
 
   cursor: pointer;
-
-  line-height: 1;
 
   transition:
     border-color 0.15s ease,
@@ -221,7 +226,7 @@ a {
    HOME PAGE — HERO
    ============================================ */
 
-.home-hero {
+.hero-compact {
   width: 100%;
   max-width: 1240px;
 
@@ -2108,7 +2113,7 @@ input:focus,
   }
 
 
-  .home-hero {
+  .hero-compact {
     padding:
       38px
       18px
@@ -2290,7 +2295,7 @@ input:focus,
   }
 
 
-  .home-hero {
+  .hero-compact {
     padding:
       48px
       24px
@@ -2382,7 +2387,7 @@ input:focus,
 
 @media (min-width: 1400px) {
 
-  .home-hero {
+  .hero-compact {
     padding-top: 60px;
 
     padding-bottom: 34px;

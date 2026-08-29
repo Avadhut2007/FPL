@@ -64,15 +64,15 @@ def get_scored_dataframe(force_refresh=False):
 
     bootstrap = fpl_api.get_bootstrap_data(force_refresh=force_refresh)
     fixtures = fpl_api.get_fixtures(force_refresh=force_refresh)
-    current_gw = fpl_api.get_current_gameweek(bootstrap)
+    next_gw = fpl_api.get_next_deadline(bootstrap)["gameweek"]
 
-    df = data_processor.build_player_dataframe(bootstrap, fixtures, current_gw)
+    df = data_processor.build_player_dataframe(bootstrap, fixtures, next_gw)
     df = data_processor.filter_available_players(df)
     df = predictor.compute_predicted_points(df)
 
     _df_cache["df"] = df
-    _df_cache["gw"] = current_gw
-    return df, current_gw
+    _df_cache["gw"] = next_gw
+    return df, next_gw
 
 
 def get_full_scored_dataframe(force_refresh=False):
@@ -85,14 +85,14 @@ def get_full_scored_dataframe(force_refresh=False):
 
     bootstrap = fpl_api.get_bootstrap_data(force_refresh=force_refresh)
     fixtures = fpl_api.get_fixtures(force_refresh=force_refresh)
-    current_gw = fpl_api.get_current_gameweek(bootstrap)
+    next_gw = fpl_api.get_next_deadline(bootstrap)["gameweek"]
 
-    df = data_processor.build_player_dataframe(bootstrap, fixtures, current_gw)
+    df = data_processor.build_player_dataframe(bootstrap, fixtures, next_gw)
     df = predictor.compute_predicted_points(df)
 
     _full_df_cache["df"] = df
-    _full_df_cache["gw"] = current_gw
-    return df, current_gw
+    _full_df_cache["gw"] = next_gw
+    return df, next_gw
 
 
 def player_to_dict(row):
@@ -247,10 +247,12 @@ def api_transfers():
 @app.route("/api/best-lineup/<int:team_id>")
 def api_best_lineup(team_id):
     """
-    Best starting XI + captain/vice-captain FROM YOUR OWN 15-MAN SQUAD —
-    reuses optimizer.pick_best_starting_xi exactly as-is (the same function
-    the Squad Builder uses), just scoped to the players you already own
-    instead of the whole transfer market. No new scoring logic.
+    Best starting XI + captain/vice-captain FROM YOUR OWN 15-MAN SQUAD, for
+    the NEXT upcoming gameweek specifically — reuses optimizer.pick_best_
+    starting_xi exactly as-is (the same function the Squad Builder uses),
+    just scoped to the players you already own instead of the whole
+    transfer market. No new scoring logic beyond the two eligibility
+    zero-outs below.
     """
     try:
         full_df, gw = get_full_scored_dataframe()
@@ -265,6 +267,14 @@ def api_best_lineup(team_id):
         # benches them. Doubtful ("d") players are left as-is since they
         # might still play.
         squad_df.loc[squad_df["status"].isin(["i", "s", "u", "n"]), "predicted_points"] = 0.0
+
+        # Blank gameweek check: a player's club can simply have no fixture
+        # at all in the upcoming gameweek (postponement, cup clash, etc).
+        # Those players can't score any points that week, so they're never
+        # eligible to start or be (vice-)captained either.
+        fixtures = fpl_api.get_fixtures()
+        teams_playing = data_processor.teams_playing_in_gw(fixtures, gw)
+        squad_df.loc[~squad_df["team_id"].isin(teams_playing), "predicted_points"] = 0.0
 
         starting_xi, bench, captain, vice_captain, formation = optimizer.pick_best_starting_xi(squad_df)
 
@@ -322,7 +332,7 @@ def api_injury_tracker(team_id):
 def api_team(team_id):
     try:
         bootstrap = fpl_api.get_bootstrap_data()
-        gw = fpl_api.get_current_gameweek(bootstrap)
+        gw = fpl_api.get_next_deadline(bootstrap)["gameweek"]
         entry_info = fpl_api.get_entry_info(team_id)
         picks_data = fpl_api.get_entry_picks(team_id, max(gw - 1, 1))
         squad = data_processor.build_team_squad(picks_data, bootstrap)

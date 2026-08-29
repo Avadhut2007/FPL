@@ -137,6 +137,21 @@ def get_available_gameweeks(fixtures: list) -> list:
     return sorted(gws)
 
 
+def teams_playing_in_gw(fixtures: list, gw: int) -> set:
+    """
+    Team IDs with at least one fixture in a specific gameweek — used to spot
+    blank gameweeks (a team with no fixture at all that week) so a captain
+    or vice-captain is never picked from a club that isn't even playing.
+    """
+    teams = set()
+    for f in fixtures:
+        if f.get("event") != gw:
+            continue
+        teams.add(f["team_h"])
+        teams.add(f["team_a"])
+    return teams
+
+
 def build_fdr_grid(bootstrap: dict, fixtures: list, current_gw: int, lookahead: int = 5) -> dict:
     """
     Team x gameweek fixture-difficulty grid for the Fixtures page — the

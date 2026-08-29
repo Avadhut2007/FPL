@@ -233,8 +233,8 @@ def get_live_scores(
             urls=urls,
             cache_name=cache_name,
             cache_ttl_seconds=60,
-            retries=1,
-            timeout=5,
+            retries=2,
+            timeout=8,
         )
 
     except Exception:
@@ -637,8 +637,8 @@ def get_league_table() -> list:
             urls=config.ESPN_STANDINGS_URLS,
             cache_name="standings",
             cache_ttl_seconds=300,
-            retries=1,
-            timeout=5,
+            retries=2,
+            timeout=8,
         )
 
     except Exception:

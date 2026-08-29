@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Transfers — FPL Squad Lab{% endblock %}
+{% block title %}Your Team — FPL Squad Lab{% endblock %}
 {% block content %}
 
 <header class="page-header">
-  <h1>Transfers</h1>
-  <p>Load your real FPL team and get ranked upgrade suggestions, blended with each player's past-season record.</p>
+  <h1>Your Team</h1>
+  <p>Load your real FPL squad to see your team, get a recommended captain and starting XI, an injury check, and upgrade suggestions.</p>
   <div class="controls">
     <label class="budget-label">Your Team ID
       <input type="number" id="team-id-input" placeholder="e.g. 1234567">
@@ -53,6 +53,26 @@
     <div class="dugout">
       <span class="dugout-label">Bench</span>
       <div class="dugout-row" id="fm-dugout-row"></div>
+    </div>
+  </section>
+
+  <section class="pitch-panel" id="lineup-panel" style="display:none">
+    <div class="panel-header">
+      <h2>🌟 Recommended Lineup & Captain</h2>
+      <span class="formation-badge" id="lineup-formation-badge">—</span>
+    </div>
+    <p class="table-empty-hint">The best starting XI and captain from the players you already own this gameweek.</p>
+    <div class="pitch">
+      <div class="pitch-halfway"></div>
+      <div class="pitch-center-circle"></div>
+      <div class="pitch-row" id="lineup-row-fwd"></div>
+      <div class="pitch-row" id="lineup-row-mid"></div>
+      <div class="pitch-row" id="lineup-row-def"></div>
+      <div class="pitch-row" id="lineup-row-gkp"></div>
+    </div>
+    <div class="dugout">
+      <span class="dugout-label">Bench</span>
+      <div class="dugout-row" id="lineup-dugout-row"></div>
     </div>
   </section>
 
